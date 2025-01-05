@@ -1,0 +1,390 @@
+
+bistools_path: software/Bis-tools
+Methylation bias check:
+ perl software/Bis-tools/Bis-QC/after_reads_mapping/methylation_bias_plot.pl --bistools_path software/Bis-tools --bissnp software/Bis-tools/Bis-SNP/Bis-SNP.latest.jar --r R --pattern WCH --genome reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.bam
+
+bistools_path: software/Bis-tools
+java -Xmx8g -jar software/Bis-tools/Bis-SNP/Bis-SNP.latest.jar -T QuickMethylationLevel -R reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa -I 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.bam -pattern WCH -patternHist 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.WCH.methy.cycle.txt
+INFO  00:45:55,519 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  00:45:55,520 HelpFormatter - The BisSNP-0.90, Compiled 2012/03/14 15:25:14 
+INFO  00:45:55,526 HelpFormatter - Based on The Genome Analysis Toolkit (GATK) v1.5-3-gbb2c10b (prebuild GATK package could be download here: ftp://ftp.broadinstitute.org/pub/gsa/GenomeAnalysisTK/GenomeAnalysisTK-1.5-3-gbb2c10b.tar.bz2) 
+INFO  00:45:55,527 HelpFormatter - Copyright (c) 2011 USC Epigenome Center 
+INFO  00:45:55,527 HelpFormatter - Please view our documentation at http://epigenome.usc.edu/publicationdata/bissnp2011/ 
+INFO  00:45:55,527 HelpFormatter - For support, please send email to lyping1986@gmail.com or benbfly@gmail.com 
+INFO  00:45:55,528 HelpFormatter - Program Args: -T QuickMethylationLevel -R reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa -I 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.bam -pattern WCH -patternHist 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.WCH.methy.cycle.txt 
+INFO  00:45:55,528 HelpFormatter - Date/Time: 2024/12/04 00:45:55 
+INFO  00:45:55,528 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  00:45:55,528 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  00:45:55,558 GenomeAnalysisEngine - Strictness is SILENT 
+INFO  00:45:55,775 SAMDataSource$SAMReaders - Initializing SAMRecords in serial 
+INFO  00:45:55,893 SAMDataSource$SAMReaders - Done initializing BAM readers: total time 0.11 
+INFO  00:45:56,805 TraversalEngine - [INITIALIZATION COMPLETE; TRAVERSAL STARTING] 
+INFO  00:45:56,806 TraversalEngine -        Location processed.reads  runtime per.1M.reads completed total.runtime remaining 
+INFO  00:46:08,537 QuickMethylationLevelWalker - Total methylated pattern(WCH) number is: 12479 
+INFO  00:46:08,545 QuickMethylationLevelWalker - Total pattern(WCH) number in the reference genome is: 446779 
+INFO  00:46:08,546 QuickMethylationLevelWalker - % of methylation level of pattern(WCH) number in the reference genome is: 2.79 
+INFO  00:46:08,593 QuickMethylationLevelWalker - Finshed!~ 
+INFO  00:46:08,593 TraversalEngine - Total runtime 11.83 secs, 0.20 min, 0.00 hours 
+INFO  00:46:08,613 TraversalEngine - 920883 reads were filtered out during traversal out of 1022526 total (90.06%) 
+INFO  00:46:08,621 TraversalEngine -   -> 97312 reads (9.52% of total) failing BadMateFilter 
+INFO  00:46:08,621 TraversalEngine -   -> 108286 reads (10.59% of total) failing BisulfiteMismatchReadsFilter 
+INFO  00:46:08,621 TraversalEngine -   -> 38370 reads (3.75% of total) failing DuplicateReadFilter 
+INFO  00:46:08,621 TraversalEngine -   -> 727 reads (0.07% of total) failing InvertedDupsReadFilter 
+INFO  00:46:08,621 TraversalEngine -   -> 676188 reads (66.13% of total) failing MappingQualityFilter 
+bistools_path: software/Bis-tools
+R --no-restore --no-save --args input=04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.WCH.methy.cycle.txt output=04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.WCH.methy_bias_plot.pdf < software/Bis-tools//Bis-QC/after_reads_mapping/methyBiasDistPlot.R
+
+R version 4.3.3 (2024-02-29) -- "Angel Food Cake"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: x86_64-conda-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # methyBiasDistPlot.R
+> # 
+> # Author: yaping
+> # Jul 15, 2014
+> # 2:05:44 PM
+> ###############################################################################
+> 
+> 
+> for (e in commandArgs(TRUE)) {
++ 	ta = strsplit(e,"=",fixed=TRUE)
++ 	if(! is.na(ta[[1]][2])) {
++ 
++ 		if(ta[[1]][1] == "input"){
++ 			input<-ta[[1]][2]
++ 		}
++ 		if(ta[[1]][1] == "output"){
++ 			output<-ta[[1]][2]
++ 		}
++ 	}
++ }
+> d <-read.table(input,sep="\t",header=F)
+> xmin<-d[1,1]
+> xmax<-d[length(d[,1]),1]
+> 
+> axisSeq<-seq(xmin, xmax, by=1)
+> 
+> pdf(output, paper="special", height=4, width=4)
+> #par(oma=c(0, 0, 0, 0), mar=c(3, 3, 3, 0.1))
+> 
+> plot(d[,1],d[,4],type="b",xlim = c(xmin,xmax), ylim=c(0,100),xaxt="n",ann=F,yaxt="n",xlab="Cycle(bp)",ylab="Methylation",lty=1,font=2,lwd=1,cex=0.8,pch=16)
+> 
+> axis(1,at=seq(xmin,xmax,length.out=3),labels=c(xmin,0,xmax),lty=1,font=2,cex.axis=1.0,cex.lab=1.0,font.axis=2,font.lab=2,lwd=1)
+> axis(2,at=seq(0,100,by=20),labels=seq(0,100,by=20), lty=1,font=2,cex.axis=1.0,cex.lab=1.0,font.axis=2,font.lab=2,lwd=1, las=1)
+> 
+> title(main="M-Bias",xlab="Cycle(bp)", ylab="Methylation",cex.lab=1)
+> dev.off()
+null device 
+          1 
+> 
+Bisulfite conversion rate distribution of whole reads:
+ perl software/Bis-tools/Bis-QC/after_reads_mapping/bisulfite_conv_distribution.pl --bistools_path software/Bis-tools --bissnp software/Bis-tools/Bis-SNP/Bis-SNP.latest.jar --r R --pattern WCH --genome reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.bam
+
+java -Xmx8g -jar software/Bis-tools/Bis-SNP/Bis-SNP.latest.jar -T BisulfiteConversionCheck -R reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa -I 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.bam -pattern WCH -patternHist 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.hist.txt 
+INFO  00:46:12,026 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  00:46:12,028 HelpFormatter - The BisSNP-0.90, Compiled 2012/03/14 15:25:14 
+INFO  00:46:12,042 HelpFormatter - Based on The Genome Analysis Toolkit (GATK) v1.5-3-gbb2c10b (prebuild GATK package could be download here: ftp://ftp.broadinstitute.org/pub/gsa/GenomeAnalysisTK/GenomeAnalysisTK-1.5-3-gbb2c10b.tar.bz2) 
+INFO  00:46:12,042 HelpFormatter - Copyright (c) 2011 USC Epigenome Center 
+INFO  00:46:12,042 HelpFormatter - Please view our documentation at http://epigenome.usc.edu/publicationdata/bissnp2011/ 
+INFO  00:46:12,042 HelpFormatter - For support, please send email to lyping1986@gmail.com or benbfly@gmail.com 
+INFO  00:46:12,043 HelpFormatter - Program Args: -T BisulfiteConversionCheck -R reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa -I 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.bam -pattern WCH -patternHist 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.hist.txt 
+INFO  00:46:12,043 HelpFormatter - Date/Time: 2024/12/04 00:46:12 
+INFO  00:46:12,043 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  00:46:12,043 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  00:46:12,075 GenomeAnalysisEngine - Strictness is SILENT 
+INFO  00:46:12,279 SAMDataSource$SAMReaders - Initializing SAMRecords in serial 
+INFO  00:46:12,319 SAMDataSource$SAMReaders - Done initializing BAM readers: total time 0.04 
+INFO  00:46:12,726 TraversalEngine - [INITIALIZATION COMPLETE; TRAVERSAL STARTING] 
+INFO  00:46:12,726 TraversalEngine -        Location processed.reads  runtime per.1M.reads completed total.runtime remaining 
+INFO  00:46:30,323 BisulfiteConversionCheckWalker - Finshed!~ 
+INFO  00:46:30,336 TraversalEngine - Total runtime 17.64 secs, 0.29 min, 0.00 hours 
+INFO  00:46:30,367 TraversalEngine - 0 reads were filtered out during traversal out of 1022342 total (0.00%) 
+R --no-restore --no-save --args input=04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.hist.txt output=04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.WCH.bisuflite_conv_distribution_plot.pdf < software/Bis-tools//Bis-QC/after_reads_mapping/bisulfiteConvDistPlot.R
+
+R version 4.3.3 (2024-02-29) -- "Angel Food Cake"
+Copyright (C) 2024 The R Foundation for Statistical Computing
+Platform: x86_64-conda-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # bisulfiteConvDistPlot.R
+> # 
+> # Author: yaping
+> # Jul 15, 2014
+> # 3:08:19 PM
+> ###############################################################################
+> 
+> 
+> for (e in commandArgs(TRUE)) {
++ 	ta = strsplit(e,"=",fixed=TRUE)
++ 	if(! is.na(ta[[1]][2])) {
++ 		
++ 		if(ta[[1]][1] == "input"){
++ 			input<-ta[[1]][2]
++ 		}
++ 		if(ta[[1]][1] == "output"){
++ 			output<-ta[[1]][2]
++ 		}
++ 	}
++ }
+> d <-read.table(input,sep="\t",header=F)
+> data<-100*d[,1]/d[,2]
+> data[data<0]=as.numeric("NaN")
+> data[data>100]=100
+> data[is.infinite(data)]=as.numeric("NaN")
+> pdf(output, paper="special", height=4, width=4)
+> #par(oma=c(0, 0, 0, 0), mar=c(3, 3, 3, 0.1))
+> 
+> hist(data,breaks=seq(0,100,by=1),freq=F,xlim = c(0,100),xlab="Methylation",ylab="Frequency",main="Ditribution of bisulfite conversion\n rate within read")
+> 
+> dev.off()
+null device 
+          1 
+> 
+> 
+Bisulfite conversion rate distribution of whole reads at chrM:
+ perl software/Bis-tools/Bis-QC/after_reads_mapping/bissnp_trinuc_sample.pl --bissnp software/Bis-tools/Bis-SNP/Bis-SNP.latest.jar --genome reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa --dbsnp reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf --nt 1 --mem 10 --interval chrM 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.trinuc_methy.chrM.txt 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.bam
+
+java -Xmx10G -jar software/Bis-tools/Bis-SNP/Bis-SNP.latest.jar -R reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa -I 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.bam -T BisulfiteGenotyper -vfn1 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.cytosine.raw.vcf -L chrM -D reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf -out_modes EMIT_ALL_CYTOSINES -sm BM -minPatConv 0.8 -C ACA,2 -C ACC,2 -C ACG,2 -C ACT,2 -C CCA,2 -C CCC,2 -C CCG,2 -C CCT,2 -C GCA,2 -C GCC,2 -C GCG,2 -C GCT,2 -C TCA,2 -C TCC,2 -C TCG,2 -C TCT,2 -toCoverage 99999999 -stand_call_conf 20 -stand_emit_conf 0 -nt 1 -minConv 1 
+
+INFO  00:46:33,809 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  00:46:33,820 HelpFormatter - The BisSNP-0.90, Compiled 2012/03/14 15:25:14 
+INFO  00:46:33,821 HelpFormatter - Based on The Genome Analysis Toolkit (GATK) v1.5-3-gbb2c10b (prebuild GATK package could be download here: ftp://ftp.broadinstitute.org/pub/gsa/GenomeAnalysisTK/GenomeAnalysisTK-1.5-3-gbb2c10b.tar.bz2) 
+INFO  00:46:33,821 HelpFormatter - Copyright (c) 2011 USC Epigenome Center 
+INFO  00:46:33,821 HelpFormatter - Please view our documentation at http://epigenome.usc.edu/publicationdata/bissnp2011/ 
+INFO  00:46:33,821 HelpFormatter - For support, please send email to lyping1986@gmail.com or benbfly@gmail.com 
+INFO  00:46:33,822 HelpFormatter - Program Args: -R reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa -I 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.bam -T BisulfiteGenotyper -vfn1 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.cytosine.raw.vcf -L chrM -D reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf -out_modes EMIT_ALL_CYTOSINES -sm BM -minPatConv 0.8 -C ACA,2 -C ACC,2 -C ACG,2 -C ACT,2 -C CCA,2 -C CCC,2 -C CCG,2 -C CCT,2 -C GCA,2 -C GCC,2 -C GCG,2 -C GCT,2 -C TCA,2 -C TCC,2 -C TCG,2 -C TCT,2 -toCoverage 99999999 -stand_call_conf 20 -stand_emit_conf 0 -nt 1 -minConv 1 
+INFO  00:46:33,822 HelpFormatter - Date/Time: 2024/12/04 00:46:33 
+INFO  00:46:33,822 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  00:46:33,822 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  00:46:33,852 RodBindingArgumentTypeDescriptor - Dynamically determined type of reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf to be VCF 
+INFO  00:46:33,857 GenomeAnalysisEngine - Strictness is SILENT 
+INFO  00:46:34,066 SAMDataSource$SAMReaders - Initializing SAMRecords in serial 
+INFO  00:46:34,102 SAMDataSource$SAMReaders - Done initializing BAM readers: total time 0.04 
+INFO  00:46:34,126 RMDTrackBuilder - Loading Tribble index from disk for file reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf 
+INFO  00:46:35,789 BisulfiteGenotyper - samples provided: [scNOMeHiC] 
+INFO  00:46:35,960 TraversalEngine - [INITIALIZATION COMPLETE; TRAVERSAL STARTING] 
+INFO  00:46:35,961 TraversalEngine -        Location processed.sites  runtime per.1M.sites completed total.runtime remaining 
+INFO  00:46:37,135 BisulfiteGenotyper - Visited bases                                1683 
+INFO  00:46:37,136 BisulfiteGenotyper - Callable bases                               1615 
+INFO  00:46:37,136 BisulfiteGenotyper - Confidently called bases                     1586 
+INFO  00:46:37,136 BisulfiteGenotyper - Visited bases in Cpg island                     0 
+INFO  00:46:37,137 BisulfiteGenotyper - Callable bases in Cpg island                     0 
+INFO  00:46:37,137 BisulfiteGenotyper - Confidently called bases in Cpg island                     0 
+INFO  00:46:37,137 BisulfiteGenotyper - % callable bases of all loci                 95.960 
+INFO  00:46:37,137 BisulfiteGenotyper - % confidently called bases of all loci       94.236 
+INFO  00:46:37,137 BisulfiteGenotyper - % confidently called bases of callable loci  98.204 
+INFO  00:46:37,137 BisulfiteGenotyper - Actual calls made                            1615 
+INFO  00:46:37,137 BisulfiteGenotyper - Average good reads coverage in all visited loci                            0.8 
+INFO  00:46:37,137 BisulfiteGenotyper - Average good reads coverage in callable position                            0.9 
+INFO  00:46:37,137 BisulfiteGenotyper - Average good reads coverage in all position of Cpg island                            NaN 
+INFO  00:46:37,137 BisulfiteGenotyper - Average good reads coverage in callable position of Cpg island                            NaN 
+INFO  00:46:37,138 BisulfiteGenotyper - -------------Methylation summary(confidently called) in total  
+INFO  00:46:37,138 BisulfiteGenotyper - % average methylation level of confidently called CCT loci in total:       28.736 
+INFO  00:46:37,138 BisulfiteGenotyper -  Number of confidently called CCT loci in total:       29 
+INFO  00:46:37,138 BisulfiteGenotyper - % average methylation level of confidently called ACG loci in total:       0.000 
+INFO  00:46:37,138 BisulfiteGenotyper -  Number of confidently called ACG loci in total:       2 
+INFO  00:46:37,138 BisulfiteGenotyper - % average methylation level of confidently called GCT loci in total:       66.667 
+INFO  00:46:37,139 BisulfiteGenotyper -  Number of confidently called GCT loci in total:       27 
+INFO  00:46:37,139 BisulfiteGenotyper - % average methylation level of confidently called ACC loci in total:       0.000 
+INFO  00:46:37,139 BisulfiteGenotyper -  Number of confidently called ACC loci in total:       29 
+INFO  00:46:37,139 BisulfiteGenotyper - % average methylation level of confidently called CCG loci in total:       36.364 
+INFO  00:46:37,139 BisulfiteGenotyper -  Number of confidently called CCG loci in total:       11 
+INFO  00:46:37,139 BisulfiteGenotyper - % average methylation level of confidently called ACA loci in total:       0.000 
+INFO  00:46:37,139 BisulfiteGenotyper -  Number of confidently called ACA loci in total:       19 
+INFO  00:46:37,140 BisulfiteGenotyper - % average methylation level of confidently called CCC loci in total:       22.727 
+INFO  00:46:37,140 BisulfiteGenotyper -  Number of confidently called CCC loci in total:       22 
+INFO  00:46:37,140 BisulfiteGenotyper - % average methylation level of confidently called TCT loci in total:       0.000 
+INFO  00:46:37,140 BisulfiteGenotyper -  Number of confidently called TCT loci in total:       19 
+INFO  00:46:37,140 BisulfiteGenotyper - % average methylation level of confidently called GCG loci in total:       66.667 
+INFO  00:46:37,140 BisulfiteGenotyper -  Number of confidently called GCG loci in total:       12 
+INFO  00:46:37,140 BisulfiteGenotyper - % average methylation level of confidently called GCC loci in total:       60.000 
+INFO  00:46:37,141 BisulfiteGenotyper -  Number of confidently called GCC loci in total:       15 
+INFO  00:46:37,141 BisulfiteGenotyper - % average methylation level of confidently called GCA loci in total:       63.636 
+INFO  00:46:37,141 BisulfiteGenotyper -  Number of confidently called GCA loci in total:       11 
+INFO  00:46:37,141 BisulfiteGenotyper - % average methylation level of confidently called TCG loci in total:       16.667 
+INFO  00:46:37,142 BisulfiteGenotyper -  Number of confidently called TCG loci in total:       6 
+INFO  00:46:37,142 BisulfiteGenotyper - % average methylation level of confidently called TCC loci in total:       0.000 
+INFO  00:46:37,142 BisulfiteGenotyper -  Number of confidently called TCC loci in total:       19 
+INFO  00:46:37,142 BisulfiteGenotyper - % average methylation level of confidently called TCA loci in total:       0.000 
+INFO  00:46:37,143 BisulfiteGenotyper -  Number of confidently called TCA loci in total:       20 
+INFO  00:46:37,143 BisulfiteGenotyper - % average methylation level of confidently called CCA loci in total:       0.000 
+INFO  00:46:37,146 BisulfiteGenotyper -  Number of confidently called CCA loci in total:       22 
+INFO  00:46:37,147 BisulfiteGenotyper - % average methylation level of confidently called ACT loci in total:       0.000 
+INFO  00:46:37,148 BisulfiteGenotyper -  Number of confidently called ACT loci in total:       28 
+INFO  00:46:37,148 BisulfiteGenotyper - ---------- Methylation summary(confidently called) in Read Group:        scNOMeHiC 
+INFO  00:46:37,148 BisulfiteGenotyper - % methylation level of confidently called ACA loci in total:       0.000 
+INFO  00:46:37,148 BisulfiteGenotyper -  Number of confidently called ACA loci in total:       19 
+INFO  00:46:37,148 BisulfiteGenotyper - % methylation level of confidently called ACC loci in total:       0.000 
+INFO  00:46:37,148 BisulfiteGenotyper -  Number of confidently called ACC loci in total:       29 
+INFO  00:46:37,148 BisulfiteGenotyper - % methylation level of confidently called ACG loci in total:       0.000 
+INFO  00:46:37,148 BisulfiteGenotyper -  Number of confidently called ACG loci in total:       2 
+INFO  00:46:37,148 BisulfiteGenotyper - % methylation level of confidently called ACT loci in total:       0.000 
+INFO  00:46:37,149 BisulfiteGenotyper -  Number of confidently called ACT loci in total:       28 
+INFO  00:46:37,149 BisulfiteGenotyper - % methylation level of confidently called CCA loci in total:       0.000 
+INFO  00:46:37,149 BisulfiteGenotyper -  Number of confidently called CCA loci in total:       22 
+INFO  00:46:37,150 BisulfiteGenotyper - % methylation level of confidently called CCC loci in total:       22.727 
+INFO  00:46:37,150 BisulfiteGenotyper -  Number of confidently called CCC loci in total:       22 
+INFO  00:46:37,150 BisulfiteGenotyper - % methylation level of confidently called CCG loci in total:       36.364 
+INFO  00:46:37,150 BisulfiteGenotyper -  Number of confidently called CCG loci in total:       11 
+INFO  00:46:37,150 BisulfiteGenotyper - % methylation level of confidently called CCT loci in total:       28.736 
+INFO  00:46:37,150 BisulfiteGenotyper -  Number of confidently called CCT loci in total:       29 
+INFO  00:46:37,150 BisulfiteGenotyper - % methylation level of confidently called GCA loci in total:       63.636 
+INFO  00:46:37,150 BisulfiteGenotyper -  Number of confidently called GCA loci in total:       11 
+INFO  00:46:37,150 BisulfiteGenotyper - % methylation level of confidently called GCC loci in total:       60.000 
+INFO  00:46:37,150 BisulfiteGenotyper -  Number of confidently called GCC loci in total:       15 
+INFO  00:46:37,150 BisulfiteGenotyper - % methylation level of confidently called GCG loci in total:       66.667 
+INFO  00:46:37,150 BisulfiteGenotyper -  Number of confidently called GCG loci in total:       12 
+INFO  00:46:37,150 BisulfiteGenotyper - % methylation level of confidently called GCT loci in total:       66.667 
+INFO  00:46:37,150 BisulfiteGenotyper -  Number of confidently called GCT loci in total:       27 
+INFO  00:46:37,150 BisulfiteGenotyper - % methylation level of confidently called TCA loci in total:       0.000 
+INFO  00:46:37,150 BisulfiteGenotyper -  Number of confidently called TCA loci in total:       20 
+INFO  00:46:37,150 BisulfiteGenotyper - % methylation level of confidently called TCC loci in total:       0.000 
+INFO  00:46:37,151 BisulfiteGenotyper -  Number of confidently called TCC loci in total:       19 
+INFO  00:46:37,160 BisulfiteGenotyper - % methylation level of confidently called TCG loci in total:       16.667 
+INFO  00:46:37,160 BisulfiteGenotyper -  Number of confidently called TCG loci in total:       6 
+INFO  00:46:37,160 BisulfiteGenotyper - % methylation level of confidently called TCT loci in total:       0.000 
+INFO  00:46:37,160 BisulfiteGenotyper -  Number of confidently called TCT loci in total:       19 
+INFO  00:46:37,161 TraversalEngine - Total runtime 1.32 secs, 0.02 min, 0.00 hours 
+INFO  00:46:37,162 TraversalEngine - 86 reads were filtered out during traversal out of 118 total (72.88%) 
+INFO  00:46:37,162 TraversalEngine -   -> 32 reads (27.12% of total) failing BisulfiteMismatchReadsFilter 
+INFO  00:46:37,162 TraversalEngine -   -> 14 reads (11.86% of total) failing DuplicateReadFilter 
+INFO  00:46:37,163 TraversalEngine -   -> 15 reads (12.71% of total) failing MappingQualityFilter 
+INFO  00:46:37,163 TraversalEngine -   -> 25 reads (21.19% of total) failing NotProperPairedReadFilter 
+Bisulfite conversion rate distribution of whole reads at chr21:
+ perl software/Bis-tools/Bis-QC/after_reads_mapping/bissnp_trinuc_sample.pl --bissnp software/Bis-tools/Bis-SNP/Bis-SNP.latest.jar --genome reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa --dbsnp reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf --nt 1 --mem 10 --interval chr21 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.trinuc_methy.chr21.txt 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.bam
+
+java -Xmx10G -jar software/Bis-tools/Bis-SNP/Bis-SNP.latest.jar -R reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa -I 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.bam -T BisulfiteGenotyper -vfn1 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.cytosine.raw.vcf -L chr21 -D reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf -out_modes EMIT_ALL_CYTOSINES -sm BM -minPatConv 0.8 -C ACA,2 -C ACC,2 -C ACG,2 -C ACT,2 -C CCA,2 -C CCC,2 -C CCG,2 -C CCT,2 -C GCA,2 -C GCC,2 -C GCG,2 -C GCT,2 -C TCA,2 -C TCC,2 -C TCG,2 -C TCT,2 -toCoverage 99999999 -stand_call_conf 20 -stand_emit_conf 0 -nt 1 -minConv 1 
+
+INFO  00:46:39,586 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  00:46:39,587 HelpFormatter - The BisSNP-0.90, Compiled 2012/03/14 15:25:14 
+INFO  00:46:39,587 HelpFormatter - Based on The Genome Analysis Toolkit (GATK) v1.5-3-gbb2c10b (prebuild GATK package could be download here: ftp://ftp.broadinstitute.org/pub/gsa/GenomeAnalysisTK/GenomeAnalysisTK-1.5-3-gbb2c10b.tar.bz2) 
+INFO  00:46:39,587 HelpFormatter - Copyright (c) 2011 USC Epigenome Center 
+INFO  00:46:39,588 HelpFormatter - Please view our documentation at http://epigenome.usc.edu/publicationdata/bissnp2011/ 
+INFO  00:46:39,588 HelpFormatter - For support, please send email to lyping1986@gmail.com or benbfly@gmail.com 
+INFO  00:46:39,588 HelpFormatter - Program Args: -R reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa -I 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.bam -T BisulfiteGenotyper -vfn1 04.alignment_snakemake/scNH_WBC_8_S8.ATCACG.calmd.cytosine.raw.vcf -L chr21 -D reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf -out_modes EMIT_ALL_CYTOSINES -sm BM -minPatConv 0.8 -C ACA,2 -C ACC,2 -C ACG,2 -C ACT,2 -C CCA,2 -C CCC,2 -C CCG,2 -C CCT,2 -C GCA,2 -C GCC,2 -C GCG,2 -C GCT,2 -C TCA,2 -C TCC,2 -C TCG,2 -C TCT,2 -toCoverage 99999999 -stand_call_conf 20 -stand_emit_conf 0 -nt 1 -minConv 1 
+INFO  00:46:39,588 HelpFormatter - Date/Time: 2024/12/04 00:46:39 
+INFO  00:46:39,588 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  00:46:39,588 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  00:46:39,608 RodBindingArgumentTypeDescriptor - Dynamically determined type of reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf to be VCF 
+INFO  00:46:39,632 GenomeAnalysisEngine - Strictness is SILENT 
+INFO  00:46:39,732 SAMDataSource$SAMReaders - Initializing SAMRecords in serial 
+INFO  00:46:39,751 SAMDataSource$SAMReaders - Done initializing BAM readers: total time 0.02 
+INFO  00:46:39,776 RMDTrackBuilder - Loading Tribble index from disk for file reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf 
+INFO  00:46:41,459 BisulfiteGenotyper - samples provided: [scNOMeHiC] 
+INFO  00:46:41,632 TraversalEngine - [INITIALIZATION COMPLETE; TRAVERSAL STARTING] 
+INFO  00:46:41,632 TraversalEngine -        Location processed.sites  runtime per.1M.sites completed total.runtime remaining 
+INFO  00:46:58,878 BisulfiteGenotyper - Visited bases                                74624 
+INFO  00:46:58,878 BisulfiteGenotyper - Callable bases                               70385 
+INFO  00:46:58,878 BisulfiteGenotyper - Confidently called bases                     68830 
+INFO  00:46:58,879 BisulfiteGenotyper - Visited bases in Cpg island                     0 
+INFO  00:46:58,879 BisulfiteGenotyper - Callable bases in Cpg island                     0 
+INFO  00:46:58,879 BisulfiteGenotyper - Confidently called bases in Cpg island                     0 
+INFO  00:46:58,879 BisulfiteGenotyper - % callable bases of all loci                 94.320 
+INFO  00:46:58,880 BisulfiteGenotyper - % confidently called bases of all loci       92.236 
+INFO  00:46:58,880 BisulfiteGenotyper - % confidently called bases of callable loci  97.791 
+INFO  00:46:58,880 BisulfiteGenotyper - Actual calls made                            70385 
+INFO  00:46:58,880 BisulfiteGenotyper - Average good reads coverage in all visited loci                            0.7 
+INFO  00:46:58,880 BisulfiteGenotyper - Average good reads coverage in callable position                            0.7 
+INFO  00:46:58,880 BisulfiteGenotyper - Average good reads coverage in all position of Cpg island                            NaN 
+INFO  00:46:58,880 BisulfiteGenotyper - Average good reads coverage in callable position of Cpg island                            NaN 
+INFO  00:46:58,881 BisulfiteGenotyper - -------------Methylation summary(confidently called) in total  
+INFO  00:46:58,881 BisulfiteGenotyper - % average methylation level of confidently called CCT loci in total:       24.221 
+INFO  00:46:58,882 BisulfiteGenotyper -  Number of confidently called CCT loci in total:       1112 
+INFO  00:46:58,883 BisulfiteGenotyper - % average methylation level of confidently called ACG loci in total:       53.691 
+INFO  00:46:58,883 BisulfiteGenotyper -  Number of confidently called ACG loci in total:       149 
+INFO  00:46:58,883 BisulfiteGenotyper - % average methylation level of confidently called GCT loci in total:       75.213 
+INFO  00:46:58,883 BisulfiteGenotyper -  Number of confidently called GCT loci in total:       821 
+INFO  00:46:58,884 BisulfiteGenotyper - % average methylation level of confidently called ACC loci in total:       2.878 
+INFO  00:46:58,884 BisulfiteGenotyper -  Number of confidently called ACC loci in total:       608 
+INFO  00:46:58,885 BisulfiteGenotyper - % average methylation level of confidently called CCG loci in total:       51.370 
+INFO  00:46:58,885 BisulfiteGenotyper -  Number of confidently called CCG loci in total:       146 
+INFO  00:46:58,886 BisulfiteGenotyper - % average methylation level of confidently called ACA loci in total:       2.383 
+INFO  00:46:58,886 BisulfiteGenotyper -  Number of confidently called ACA loci in total:       1210 
+INFO  00:46:58,886 BisulfiteGenotyper - % average methylation level of confidently called CCC loci in total:       14.920 
+INFO  00:46:58,886 BisulfiteGenotyper -  Number of confidently called CCC loci in total:       773 
+INFO  00:46:58,886 BisulfiteGenotyper - % average methylation level of confidently called TCT loci in total:       1.949 
+INFO  00:46:58,886 BisulfiteGenotyper -  Number of confidently called TCT loci in total:       1385 
+INFO  00:46:58,886 BisulfiteGenotyper - % average methylation level of confidently called GCG loci in total:       80.252 
+INFO  00:46:58,886 BisulfiteGenotyper -  Number of confidently called GCG loci in total:       119 
+INFO  00:46:58,886 BisulfiteGenotyper - % average methylation level of confidently called GCC loci in total:       69.810 
+INFO  00:46:58,886 BisulfiteGenotyper -  Number of confidently called GCC loci in total:       700 
+INFO  00:46:58,886 BisulfiteGenotyper - % average methylation level of confidently called GCA loci in total:       72.730 
+INFO  00:46:58,886 BisulfiteGenotyper -  Number of confidently called GCA loci in total:       815 
+INFO  00:46:58,887 BisulfiteGenotyper - % average methylation level of confidently called TCG loci in total:       48.000 
+INFO  00:46:58,887 BisulfiteGenotyper -  Number of confidently called TCG loci in total:       125 
+INFO  00:46:58,887 BisulfiteGenotyper - % average methylation level of confidently called TCC loci in total:       2.169 
+INFO  00:46:58,887 BisulfiteGenotyper -  Number of confidently called TCC loci in total:       968 
+INFO  00:46:58,887 BisulfiteGenotyper - % average methylation level of confidently called TCA loci in total:       1.720 
+INFO  00:46:58,887 BisulfiteGenotyper -  Number of confidently called TCA loci in total:       1250 
+INFO  00:46:58,887 BisulfiteGenotyper - % average methylation level of confidently called CCA loci in total:       7.972 
+INFO  00:46:58,887 BisulfiteGenotyper -  Number of confidently called CCA loci in total:       1016 
+INFO  00:46:58,887 BisulfiteGenotyper - % average methylation level of confidently called ACT loci in total:       3.027 
+INFO  00:46:58,887 BisulfiteGenotyper -  Number of confidently called ACT loci in total:       991 
+INFO  00:46:58,887 BisulfiteGenotyper - ---------- Methylation summary(confidently called) in Read Group:        scNOMeHiC 
+INFO  00:46:58,887 BisulfiteGenotyper - % methylation level of confidently called ACA loci in total:       2.383 
+INFO  00:46:58,888 BisulfiteGenotyper -  Number of confidently called ACA loci in total:       1210 
+INFO  00:46:58,888 BisulfiteGenotyper - % methylation level of confidently called ACC loci in total:       2.878 
+INFO  00:46:58,888 BisulfiteGenotyper -  Number of confidently called ACC loci in total:       608 
+INFO  00:46:58,888 BisulfiteGenotyper - % methylation level of confidently called ACG loci in total:       53.691 
+INFO  00:46:58,888 BisulfiteGenotyper -  Number of confidently called ACG loci in total:       149 
+INFO  00:46:58,888 BisulfiteGenotyper - % methylation level of confidently called ACT loci in total:       3.027 
+INFO  00:46:58,888 BisulfiteGenotyper -  Number of confidently called ACT loci in total:       991 
+INFO  00:46:58,888 BisulfiteGenotyper - % methylation level of confidently called CCA loci in total:       7.972 
+INFO  00:46:58,888 BisulfiteGenotyper -  Number of confidently called CCA loci in total:       1016 
+INFO  00:46:58,888 BisulfiteGenotyper - % methylation level of confidently called CCC loci in total:       14.920 
+INFO  00:46:58,888 BisulfiteGenotyper -  Number of confidently called CCC loci in total:       773 
+INFO  00:46:58,888 BisulfiteGenotyper - % methylation level of confidently called CCG loci in total:       51.370 
+INFO  00:46:58,888 BisulfiteGenotyper -  Number of confidently called CCG loci in total:       146 
+INFO  00:46:58,888 BisulfiteGenotyper - % methylation level of confidently called CCT loci in total:       24.221 
+INFO  00:46:58,888 BisulfiteGenotyper -  Number of confidently called CCT loci in total:       1112 
+INFO  00:46:58,888 BisulfiteGenotyper - % methylation level of confidently called GCA loci in total:       72.730 
+INFO  00:46:58,889 BisulfiteGenotyper -  Number of confidently called GCA loci in total:       815 
+INFO  00:46:58,889 BisulfiteGenotyper - % methylation level of confidently called GCC loci in total:       69.810 
+INFO  00:46:58,889 BisulfiteGenotyper -  Number of confidently called GCC loci in total:       700 
+INFO  00:46:58,889 BisulfiteGenotyper - % methylation level of confidently called GCG loci in total:       80.252 
+INFO  00:46:58,889 BisulfiteGenotyper -  Number of confidently called GCG loci in total:       119 
+INFO  00:46:58,889 BisulfiteGenotyper - % methylation level of confidently called GCT loci in total:       75.213 
+INFO  00:46:58,889 BisulfiteGenotyper -  Number of confidently called GCT loci in total:       821 
+INFO  00:46:58,889 BisulfiteGenotyper - % methylation level of confidently called TCA loci in total:       1.720 
+INFO  00:46:58,889 BisulfiteGenotyper -  Number of confidently called TCA loci in total:       1250 
+INFO  00:46:58,889 BisulfiteGenotyper - % methylation level of confidently called TCC loci in total:       2.169 
+INFO  00:46:58,889 BisulfiteGenotyper -  Number of confidently called TCC loci in total:       968 
+INFO  00:46:58,889 BisulfiteGenotyper - % methylation level of confidently called TCG loci in total:       48.000 
+INFO  00:46:58,889 BisulfiteGenotyper -  Number of confidently called TCG loci in total:       125 
+INFO  00:46:58,889 BisulfiteGenotyper - % methylation level of confidently called TCT loci in total:       1.949 
+INFO  00:46:58,889 BisulfiteGenotyper -  Number of confidently called TCT loci in total:       1385 
+INFO  00:46:58,903 TraversalEngine - Total runtime 17.42 secs, 0.29 min, 0.00 hours 
+INFO  00:46:58,904 TraversalEngine - 13961 reads were filtered out during traversal out of 15277 total (91.39%) 
+INFO  00:46:58,904 TraversalEngine -   -> 9 reads (0.06% of total) failing BisulfiteIncompleteConvReadsFilter 
+INFO  00:46:58,904 TraversalEngine -   -> 1386 reads (9.07% of total) failing BisulfiteMismatchReadsFilter 
+INFO  00:46:58,904 TraversalEngine -   -> 1188 reads (7.78% of total) failing DuplicateReadFilter 
+INFO  00:46:58,904 TraversalEngine -   -> 7 reads (0.05% of total) failing InvertedDupsReadFilter 
+INFO  00:46:58,904 TraversalEngine -   -> 9865 reads (64.57% of total) failing MappingQualityFilter 
+INFO  00:46:58,904 TraversalEngine -   -> 1506 reads (9.86% of total) failing NotProperPairedReadFilter 

@@ -1,0 +1,522 @@
+Using an excessive number of cores has a diminishing return! It is recommended not to exceed 8 cores per trimming process (you asked for 8 cores). Please consider re-specifying
+Path to Cutadapt set as: 'cutadapt' (default)
+Cutadapt seems to be working fine (tested command 'cutadapt --version')
+Cutadapt version: 4.9
+Could not detect version of Python used by Cutadapt from the first line of Cutadapt (but found this: >>>#!/bin/sh<<<)
+Letting the (modified) Cutadapt deal with the Python version instead
+Parallel gzip (pigz) detected. Proceeding with multicore (de)compression using 8 cores
+
+No quality encoding type selected. Assuming that the data provided uses Sanger encoded Phred scores (default)
+
+Output will be written into the directory: /projects/b1198/epifluidlab/eric/projects/scnomehic_opt/03.trimmed_fastq_snakemake/
+
+
+AUTO-DETECTING ADAPTER TYPE
+===========================
+Attempting to auto-detect adapter type from the first 1 million sequences of the first file (>> 01.demul_fastq_snakemake/scNH_WBC_10_S10.ATCACG.R1.fastq.gz <<)
+
+Found perfect matches for the following adapter sequences:
+Adapter type	Count	Sequence	Sequences analysed	Percentage
+Illumina	884877	AGATCGGAAGAGC	1000000	88.49
+Nextera	1	CTGTCTCTTATA	1000000	0.00
+smallRNA	0	TGGAATTCTCGG	1000000	0.00
+Using Illumina adapter for trimming (count: 884877). Second best hit was Nextera (count: 1)
+
+Writing report to '/projects/b1198/epifluidlab/eric/projects/scnomehic_opt/03.trimmed_fastq_snakemake/scNH_WBC_10_S10.ATCACG.R1.fastq.gz_trimming_report.txt'
+
+SUMMARISING RUN PARAMETERS
+==========================
+Input filename: 01.demul_fastq_snakemake/scNH_WBC_10_S10.ATCACG.R1.fastq.gz
+Trimming mode: paired-end
+Trim Galore version: 0.6.7
+Cutadapt version: 4.9
+Python version: could not detect
+Number of cores used for trimming: 8
+Quality Phred score cutoff: 20
+Quality encoding type selected: ASCII+33
+Adapter sequence: 'AGATCGGAAGAGC' (Illumina TruSeq, Sanger iPCR; auto-detected)
+Maximum trimming error rate: 0.1 (default)
+Minimum required adapter overlap (stringency): 1 bp
+Minimum required sequence length for both reads before a sequence pair gets removed: 20 bp
+All Read 1 sequences will be trimmed by 15 bp from their 5' end to avoid poor qualities or biases
+All Read 2 sequences will be trimmed by 15 bp from their 5' end to avoid poor qualities or biases (e.g. M-bias for BS-Seq applications)
+All Read 1 sequences will be trimmed by 5 bp from their 3' end to avoid poor qualities or biases
+All Read 2 sequences will be trimmed by 5 bp from their 3' end to avoid poor qualities or biases
+Running FastQC on the data once trimming has completed
+Running FastQC with the following extra arguments: '--outdir 02.fastqc_out_snakemake -t 32'
+Output file(s) will be GZIP compressed
+
+Cutadapt seems to be fairly up-to-date (version 4.9). Setting -j 8
+Writing final adapter and quality trimmed output to scNH_WBC_10_S10.ATCACG.R1_trimmed.fq.gz
+
+
+  >>> Now performing quality (cutoff '-q 20') and adapter trimming in a single pass for the adapter sequence: 'AGATCGGAAGAGC' from file 01.demul_fastq_snakemake/scNH_WBC_10_S10.ATCACG.R1.fastq.gz <<< 
+This is cutadapt 4.9 with Python 3.12.3
+Command line parameters: -j 8 -e 0.1 -q 20 -O 1 -a AGATCGGAAGAGC 01.demul_fastq_snakemake/scNH_WBC_10_S10.ATCACG.R1.fastq.gz
+Processing single-end reads on 8 cores ...
+Finished in 7.960 s (1.406 µs/read; 42.68 M reads/minute).
+
+=== Summary ===
+
+Total reads processed:               5,662,790
+Reads with adapters:                 5,268,863 (93.0%)
+Reads written (passing filters):     5,662,790 (100.0%)
+
+Total basepairs processed:   809,778,970 bp
+Quality-trimmed:               6,673,344 bp (0.8%)
+Total written (filtered):    219,511,670 bp (27.1%)
+
+=== Adapter 1 ===
+
+Sequence: AGATCGGAAGAGC; Type: regular 3'; Length: 13; Trimmed: 5268863 times
+
+Minimum overlap: 1
+No. of allowed errors:
+1-9 bp: 0; 10-13 bp: 1
+
+Bases preceding removed adapters:
+  A: 2.8%
+  C: 75.0%
+  G: 0.1%
+  T: 22.1%
+  none/other: 0.0%
+
+Overview of removed sequences
+length	count	expect	max.err	error counts
+1	224913	1415697.5	0	224913
+2	851	353924.4	0	851
+3	3703	88481.1	0	3703
+4	2242	22120.3	0	2242
+5	5451	5530.1	0	5451
+6	216	1382.5	0	216
+7	160	345.6	0	160
+8	1430	86.4	0	1430
+9	2547	21.6	0	2544 3
+10	219	5.4	1	180 39
+11	2046	1.4	1	1909 137
+12	286	0.3	1	237 49
+13	1733	0.1	1	1547 186
+14	1453	0.1	1	1355 98
+15	1781	0.1	1	1600 181
+16	1959	0.1	1	1729 230
+17	3497	0.1	1	3232 265
+18	800	0.1	1	624 176
+19	1670	0.1	1	1482 188
+20	2478	0.1	1	2244 234
+21	2138	0.1	1	1911 227
+22	459	0.1	1	383 76
+23	1613	0.1	1	1492 121
+24	1598	0.1	1	1492 106
+25	1835	0.1	1	1703 132
+26	1307	0.1	1	1185 122
+27	2095	0.1	1	1901 194
+28	2206	0.1	1	1937 269
+29	2820	0.1	1	2639 181
+30	518	0.1	1	441 77
+31	1487	0.1	1	1353 134
+32	2025	0.1	1	1839 186
+33	1696	0.1	1	1566 130
+34	2434	0.1	1	2197 237
+35	4423	0.1	1	4032 391
+36	899	0.1	1	769 130
+37	819	0.1	1	702 117
+38	2151	0.1	1	1953 198
+39	1638	0.1	1	1508 130
+40	1754	0.1	1	1594 160
+41	1951	0.1	1	1770 181
+42	3176	0.1	1	2856 320
+43	2692	0.1	1	2372 320
+44	9908	0.1	1	9064 844
+45	2962	0.1	1	2626 336
+46	11642	0.1	1	10898 744
+47	4453	0.1	1	4014 439
+48	2613	0.1	1	2393 220
+49	3698	0.1	1	3427 271
+50	2186	0.1	1	2017 169
+51	2774	0.1	1	2543 231
+52	5010	0.1	1	4692 318
+53	3319	0.1	1	3059 260
+54	1288	0.1	1	1154 134
+55	1358	0.1	1	1232 126
+56	2692	0.1	1	2419 273
+57	1358	0.1	1	1204 154
+58	1586	0.1	1	1387 199
+59	2467	0.1	1	2189 278
+60	1188	0.1	1	1051 137
+61	1487	0.1	1	1275 212
+62	2307	0.1	1	2061 246
+63	1117	0.1	1	940 177
+64	1590	0.1	1	1392 198
+65	2202	0.1	1	1937 265
+66	4093	0.1	1	3771 322
+67	4637	0.1	1	4309 328
+68	1511	0.1	1	1271 240
+69	1350	0.1	1	1113 237
+70	1489	0.1	1	1288 201
+71	1548	0.1	1	1337 211
+72	1530	0.1	1	1303 227
+73	1354	0.1	1	1171 183
+74	1061	0.1	1	911 150
+75	913	0.1	1	748 165
+76	1017	0.1	1	871 146
+77	1289	0.1	1	1121 168
+78	1717	0.1	1	1542 175
+79	2077	0.1	1	1899 178
+80	2435	0.1	1	2266 169
+81	2759	0.1	1	2569 190
+82	2879	0.1	1	2673 206
+83	3316	0.1	1	3056 260
+84	3634	0.1	1	3399 235
+85	4306	0.1	1	4015 291
+86	5372	0.1	1	5005 367
+87	6581	0.1	1	6049 532
+88	9465	0.1	1	8591 874
+89	8438	0.1	1	7934 504
+90	9397	0.1	1	8912 485
+91	10629	0.1	1	10184 445
+92	12441	0.1	1	11937 504
+93	14483	0.1	1	13899 584
+94	16790	0.1	1	16236 554
+95	18810	0.1	1	18252 558
+96	21078	0.1	1	20480 598
+97	23729	0.1	1	23040 689
+98	25745	0.1	1	24967 778
+99	28239	0.1	1	27405 834
+100	30126	0.1	1	29215 911
+101	31948	0.1	1	30905 1043
+102	34177	0.1	1	33038 1139
+103	35346	0.1	1	34257 1089
+104	38747	0.1	1	37568 1179
+105	43253	0.1	1	42170 1083
+106	50322	0.1	1	49078 1244
+107	59093	0.1	1	57687 1406
+108	71594	0.1	1	69985 1609
+109	86552	0.1	1	84588 1964
+110	104108	0.1	1	102079 2029
+111	126756	0.1	1	124119 2637
+112	151498	0.1	1	148605 2893
+113	178865	0.1	1	175311 3554
+114	209180	0.1	1	205427 3753
+115	237581	0.1	1	234074 3507
+116	262912	0.1	1	259308 3604
+117	273043	0.1	1	269374 3669
+118	258677	0.1	1	255301 3376
+119	223942	0.1	1	221027 2915
+120	186095	0.1	1	183524 2571
+121	140836	0.1	1	138744 2092
+122	131564	0.1	1	129420 2144
+123	130966	0.1	1	128614 2352
+124	150712	0.1	1	147803 2909
+125	137933	0.1	1	134898 3035
+126	141570	0.1	1	138166 3404
+127	144584	0.1	1	140644 3940
+128	152779	0.1	1	146415 6364
+129	173516	0.1	1	157135 16381
+130	161247	0.1	1	153268 7979
+131	140821	0.1	1	134571 6250
+132	115034	0.1	1	110626 4408
+133	87749	0.1	1	84562 3187
+134	68534	0.1	1	64710 3824
+135	27265	0.1	1	24790 2475
+136	16475	0.1	1	15363 1112
+137	9542	0.1	1	8476 1066
+138	6598	0.1	1	5557 1041
+139	5617	0.1	1	3817 1800
+140	2234	0.1	1	1983 251
+141	831	0.1	1	717 114
+142	131	0.1	1	89 42
+143	24	0.1	1	1 23
+
+RUN STATISTICS FOR INPUT FILE: 01.demul_fastq_snakemake/scNH_WBC_10_S10.ATCACG.R1.fastq.gz
+=============================================
+5662790 sequences processed in total
+The length threshold of paired-end sequences gets evaluated later on (in the validation step)
+
+Writing report to '/projects/b1198/epifluidlab/eric/projects/scnomehic_opt/03.trimmed_fastq_snakemake/scNH_WBC_10_S10.ATCACG.R2.fastq.gz_trimming_report.txt'
+
+SUMMARISING RUN PARAMETERS
+==========================
+Input filename: 01.demul_fastq_snakemake/scNH_WBC_10_S10.ATCACG.R2.fastq.gz
+Trimming mode: paired-end
+Trim Galore version: 0.6.7
+Cutadapt version: 4.9
+Python version: could not detect
+Number of cores used for trimming: 8
+Quality Phred score cutoff: 20
+Quality encoding type selected: ASCII+33
+Adapter sequence: 'AGATCGGAAGAGC' (Illumina TruSeq, Sanger iPCR; auto-detected)
+Maximum trimming error rate: 0.1 (default)
+Minimum required adapter overlap (stringency): 1 bp
+Minimum required sequence length for both reads before a sequence pair gets removed: 20 bp
+All Read 1 sequences will be trimmed by 15 bp from their 5' end to avoid poor qualities or biases
+All Read 2 sequences will be trimmed by 15 bp from their 5' end to avoid poor qualities or biases (e.g. M-bias for BS-Seq applications)
+All Read 1 sequences will be trimmed by 5 bp from their 3' end to avoid poor qualities or biases
+All Read 2 sequences will be trimmed by 5 bp from their 3' end to avoid poor qualities or biases
+Running FastQC on the data once trimming has completed
+Running FastQC with the following extra arguments: '--outdir 02.fastqc_out_snakemake -t 32'
+Output file(s) will be GZIP compressed
+
+Cutadapt seems to be fairly up-to-date (version 4.9). Setting -j -j 8
+Writing final adapter and quality trimmed output to scNH_WBC_10_S10.ATCACG.R2_trimmed.fq.gz
+
+
+  >>> Now performing quality (cutoff '-q 20') and adapter trimming in a single pass for the adapter sequence: 'AGATCGGAAGAGC' from file 01.demul_fastq_snakemake/scNH_WBC_10_S10.ATCACG.R2.fastq.gz <<< 
+This is cutadapt 4.9 with Python 3.12.3
+Command line parameters: -j 8 -e 0.1 -q 20 -O 1 -a AGATCGGAAGAGC 01.demul_fastq_snakemake/scNH_WBC_10_S10.ATCACG.R2.fastq.gz
+Processing single-end reads on 8 cores ...
+Finished in 9.210 s (1.626 µs/read; 36.89 M reads/minute).
+
+=== Summary ===
+
+Total reads processed:               5,662,790
+Reads with adapters:                 5,256,306 (92.8%)
+Reads written (passing filters):     5,662,790 (100.0%)
+
+Total basepairs processed:   849,418,500 bp
+Quality-trimmed:               9,471,129 bp (1.1%)
+Total written (filtered):    247,552,261 bp (29.1%)
+
+=== Adapter 1 ===
+
+Sequence: AGATCGGAAGAGC; Type: regular 3'; Length: 13; Trimmed: 5256306 times
+
+Minimum overlap: 1
+No. of allowed errors:
+1-9 bp: 0; 10-13 bp: 1
+
+Bases preceding removed adapters:
+  A: 1.0%
+  C: 0.3%
+  G: 0.6%
+  T: 98.1%
+  none/other: 0.0%
+WARNING:
+    The adapter is preceded by 'T' extremely often.
+    The provided adapter sequence could be incomplete at its 5' end.
+    Ignore this warning when trimming primers.
+
+Overview of removed sequences
+length	count	expect	max.err	error counts
+1	126401	1415697.5	0	126401
+2	22463	353924.4	0	22463
+3	10743	88481.1	0	10743
+4	8185	22120.3	0	8185
+5	920	5530.1	0	920
+6	1568	1382.5	0	1568
+7	1429	345.6	0	1429
+8	1678	86.4	0	1678
+9	2322	21.6	0	2315 7
+10	1190	5.4	1	1032 158
+11	3206	1.4	1	2976 230
+12	1917	0.3	1	1760 157
+13	675	0.1	1	528 147
+14	1138	0.1	1	987 151
+15	4094	0.1	1	3719 375
+16	698	0.1	1	444 254
+17	1240	0.1	1	1003 237
+18	4686	0.1	1	3963 723
+19	5719	0.1	1	4887 832
+20	3673	0.1	1	3065 608
+21	1607	0.1	1	1244 363
+22	1010	0.1	1	764 246
+23	1184	0.1	1	945 239
+24	2228	0.1	1	1831 397
+25	1143	0.1	1	946 197
+26	1971	0.1	1	1691 280
+27	6477	0.1	1	5984 493
+28	1198	0.1	1	940 258
+29	2736	0.1	1	2422 314
+30	1121	0.1	1	884 237
+31	1574	0.1	1	1347 227
+32	641	0.1	1	482 159
+33	1763	0.1	1	1537 226
+34	4895	0.1	1	4462 433
+35	1448	0.1	1	1180 268
+36	1975	0.1	1	1708 267
+37	6628	0.1	1	6078 550
+38	2451	0.1	1	2118 333
+39	2074	0.1	1	1721 353
+40	2258	0.1	1	1991 267
+41	1030	0.1	1	860 170
+42	1594	0.1	1	1396 198
+43	2786	0.1	1	2518 268
+44	642	0.1	1	498 144
+45	4096	0.1	1	3759 337
+46	2119	0.1	1	1880 239
+47	1263	0.1	1	1083 180
+48	2900	0.1	1	2670 230
+49	2169	0.1	1	1942 227
+50	1303	0.1	1	1099 204
+51	2304	0.1	1	2048 256
+52	2174	0.1	1	1861 313
+53	2107	0.1	1	1884 223
+54	1253	0.1	1	1057 196
+55	2580	0.1	1	2320 260
+56	1461	0.1	1	1257 204
+57	2439	0.1	1	2164 275
+58	2850	0.1	1	2557 293
+59	3311	0.1	1	2965 346
+60	2234	0.1	1	1974 260
+61	2075	0.1	1	1851 224
+62	2034	0.1	1	1803 231
+63	1634	0.1	1	1456 178
+64	2125	0.1	1	1878 247
+65	1774	0.1	1	1541 233
+66	2067	0.1	1	1824 243
+67	2285	0.1	1	2029 256
+68	3597	0.1	1	3213 384
+69	2437	0.1	1	2214 223
+70	5858	0.1	1	5394 464
+71	4077	0.1	1	3731 346
+72	4866	0.1	1	4489 377
+73	5556	0.1	1	5164 392
+74	4818	0.1	1	4437 381
+75	5760	0.1	1	5293 467
+76	2444	0.1	1	2179 265
+77	1523	0.1	1	1318 205
+78	2192	0.1	1	1922 270
+79	2401	0.1	1	2151 250
+80	2744	0.1	1	2477 267
+81	3257	0.1	1	2969 288
+82	3569	0.1	1	3291 278
+83	3694	0.1	1	3368 326
+84	3963	0.1	1	3633 330
+85	4169	0.1	1	3801 368
+86	4880	0.1	1	4449 431
+87	5639	0.1	1	5129 510
+88	6425	0.1	1	5881 544
+89	7429	0.1	1	6785 644
+90	8468	0.1	1	7775 693
+91	9128	0.1	1	8469 659
+92	10976	0.1	1	10237 739
+93	12872	0.1	1	12037 835
+94	15271	0.1	1	14316 955
+95	17796	0.1	1	16740 1056
+96	19700	0.1	1	18649 1051
+97	21547	0.1	1	20451 1096
+98	24283	0.1	1	23015 1268
+99	26297	0.1	1	25062 1235
+100	28659	0.1	1	27299 1360
+101	30776	0.1	1	29488 1288
+102	32871	0.1	1	31586 1285
+103	35082	0.1	1	33756 1326
+104	36759	0.1	1	35418 1341
+105	40854	0.1	1	39345 1509
+106	45737	0.1	1	44120 1617
+107	53669	0.1	1	51839 1830
+108	63070	0.1	1	61099 1971
+109	75951	0.1	1	73654 2297
+110	91400	0.1	1	88718 2682
+111	109463	0.1	1	106359 3104
+112	131074	0.1	1	127792 3282
+113	155398	0.1	1	151767 3631
+114	182089	0.1	1	177985 4104
+115	211963	0.1	1	207437 4526
+116	241446	0.1	1	236611 4835
+117	265890	0.1	1	260923 4967
+118	275347	0.1	1	270235 5112
+119	260275	0.1	1	255426 4849
+120	224955	0.1	1	220671 4284
+121	186665	0.1	1	182908 3757
+122	141686	0.1	1	138493 3193
+123	132430	0.1	1	129391 3039
+124	131897	0.1	1	128861 3036
+125	151086	0.1	1	147686 3400
+126	137893	0.1	1	134452 3441
+127	141097	0.1	1	137507 3590
+128	143404	0.1	1	139709 3695
+129	149484	0.1	1	145330 4154
+130	159535	0.1	1	155066 4469
+131	155795	0.1	1	151255 4540
+132	136699	0.1	1	132832 3867
+133	112782	0.1	1	109472 3310
+134	86593	0.1	1	84013 2580
+135	66667	0.1	1	64530 2137
+136	25660	0.1	1	24679 981
+137	16329	0.1	1	15593 736
+138	9120	0.1	1	8593 527
+139	6071	0.1	1	5654 417
+140	4232	0.1	1	3896 336
+141	2318	0.1	1	2073 245
+142	896	0.1	1	754 142
+143	189	0.1	1	109 80
+144	87	0.1	1	10 77
+145	75	0.1	1	11 64
+146	76	0.1	1	13 63
+147	51	0.1	1	4 47
+148	62	0.1	1	2 60
+149	58	0.1	1	5 53
+150	69	0.1	1	1 68
+
+
+WARNING:
+    One or more of your adapter sequences may be incomplete.
+    Please see the detailed output above.
+
+RUN STATISTICS FOR INPUT FILE: 01.demul_fastq_snakemake/scNH_WBC_10_S10.ATCACG.R2.fastq.gz
+=============================================
+5662790 sequences processed in total
+The length threshold of paired-end sequences gets evaluated later on (in the validation step)
+
+Validate paired-end files scNH_WBC_10_S10.ATCACG.R1_trimmed.fq.gz and scNH_WBC_10_S10.ATCACG.R2_trimmed.fq.gz
+file_1: scNH_WBC_10_S10.ATCACG.R1_trimmed.fq.gz, file_2: scNH_WBC_10_S10.ATCACG.R2_trimmed.fq.gz
+
+
+>>>>> Now validing the length of the 2 paired-end infiles: scNH_WBC_10_S10.ATCACG.R1_trimmed.fq.gz and scNH_WBC_10_S10.ATCACG.R2_trimmed.fq.gz <<<<<
+Writing validated paired-end Read 1 reads to scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Writing validated paired-end Read 2 reads to scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+
+Total number of sequences analysed: 5662790
+
+Number of sequence pairs removed because at least one read was shorter than the length cutoff (20 bp): 4685904 (82.75%)
+
+
+  >>> Now running FastQC on the validated data scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz<<<
+
+Started analysis of scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 5% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 10% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 15% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 20% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 25% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 30% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 35% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 40% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 45% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 50% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 55% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 60% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 65% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 70% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 75% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 80% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 85% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 90% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+Approx 95% complete for scNH_WBC_10_S10.ATCACG.R1_val_1.fq.gz
+
+  >>> Now running FastQC on the validated data scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz<<<
+
+Started analysis of scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 5% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 10% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 15% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 20% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 25% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 30% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 35% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 40% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 45% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 50% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 55% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 60% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 65% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 70% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 75% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 80% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 85% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 90% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Approx 95% complete for scNH_WBC_10_S10.ATCACG.R2_val_2.fq.gz
+Deleting both intermediate output files scNH_WBC_10_S10.ATCACG.R1_trimmed.fq.gz and scNH_WBC_10_S10.ATCACG.R2_trimmed.fq.gz
+
+====================================================================================================
+

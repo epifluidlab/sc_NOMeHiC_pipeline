@@ -1,0 +1,13 @@
+name: schicluster_test
+channels:
+  - r
+  - bioconda
+  - conda-forge
+dependencies:
+  - python = 3.6
+  - pip
+  - git
+  - opencv
+  - pip:
+    - git+https://github.com/zhoujt1994/scHiCluster.git
+  

@@ -1,0 +1,163 @@
+java -Xmx10G -jar software/Bis-tools/Bis-SNP/BisSNP-0.90.jar -R reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa -I 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.bam -D reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf -T BisulfiteGenotyper -vfn1 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.cytosine.raw.vcf -vfn2 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.snp.raw.vcf -out_modes NOMESEQ_MODE -sm GM -badMate -mm 0.3 -minPatConv 0.4 -stand_call_conf 10 -nt 1 -minConv 1 -vcfCache 1000000 -mmq 30 -mbq 5
+
+INFO  14:58:39,942 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  14:58:39,943 HelpFormatter - The BisSNP-0.90, Compiled 2012/03/14 15:25:14 
+INFO  14:58:39,943 HelpFormatter - Based on The Genome Analysis Toolkit (GATK) v1.5-3-gbb2c10b (prebuild GATK package could be download here: ftp://ftp.broadinstitute.org/pub/gsa/GenomeAnalysisTK/GenomeAnalysisTK-1.5-3-gbb2c10b.tar.bz2) 
+INFO  14:58:39,944 HelpFormatter - Copyright (c) 2011 USC Epigenome Center 
+INFO  14:58:39,944 HelpFormatter - Please view our documentation at http://epigenome.usc.edu/publicationdata/bissnp2011/ 
+INFO  14:58:39,944 HelpFormatter - For support, please send email to lyping1986@gmail.com or benbfly@gmail.com 
+INFO  14:58:39,944 HelpFormatter - Program Args: -R reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa -I 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.bam -D reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf -T BisulfiteGenotyper -vfn1 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.cytosine.raw.vcf -vfn2 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.snp.raw.vcf -out_modes NOMESEQ_MODE -sm GM -badMate -mm 0.3 -minPatConv 0.4 -stand_call_conf 10 -nt 1 -minConv 1 -vcfCache 1000000 -mmq 30 -mbq 5 
+INFO  14:58:39,945 HelpFormatter - Date/Time: 2024/12/04 14:58:39 
+INFO  14:58:39,945 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  14:58:39,945 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  14:58:39,964 RodBindingArgumentTypeDescriptor - Dynamically determined type of reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf to be VCF 
+INFO  14:58:39,971 GenomeAnalysisEngine - Strictness is SILENT 
+INFO  14:58:40,069 SAMDataSource$SAMReaders - Initializing SAMRecords in serial 
+INFO  14:58:40,156 SAMDataSource$SAMReaders - Done initializing BAM readers: total time 0.09 
+INFO  14:58:40,216 RMDTrackBuilder - Loading Tribble index from disk for file reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf 
+INFO  14:58:40,722 BisulfiteGenotyper - samples provided: [scNOMeHiC] 
+INFO  14:58:40,841 TraversalEngine - [INITIALIZATION COMPLETE; TRAVERSAL STARTING] 
+INFO  14:58:40,842 TraversalEngine -        Location processed.sites  runtime per.1M.sites completed total.runtime remaining 
+INFO  14:59:10,759 TraversalEngine -   chr1:27649258        6.88e+05   30.0 s       43.6 s      0.9%        56.1 m    55.6 m 
+INFO  14:59:40,765 TraversalEngine -   chr1:58882325        1.43e+06   60.0 s       42.1 s      1.9%        52.7 m    51.7 m 
+INFO  15:00:10,801 TraversalEngine -   chr1:97135828        2.18e+06   90.1 s       41.3 s      3.1%        47.9 m    46.4 m 
+INFO  15:00:40,811 TraversalEngine -  chr1:157155799        2.94e+06    2.0 m       40.8 s      5.1%        39.5 m    37.5 m 
+INFO  15:01:10,823 TraversalEngine -  chr1:196086479        3.70e+06    2.5 m       40.6 s      6.3%        39.5 m    37.0 m 
+INFO  15:01:40,832 TraversalEngine -  chr1:233398825        4.46e+06    3.0 m       40.4 s      7.5%        39.9 m    36.9 m 
+INFO  15:02:10,837 TraversalEngine -   chr2:19026585        5.20e+06    3.5 m       40.4 s      8.6%        40.5 m    37.0 m 
+INFO  15:02:40,865 TraversalEngine -   chr2:53285542        5.95e+06    4.0 m       40.3 s      9.7%        41.0 m    37.0 m 
+INFO  15:03:10,868 TraversalEngine -   chr2:89820607        6.70e+06    4.5 m       40.3 s     10.9%        41.2 m    36.7 m 
+INFO  15:03:40,895 TraversalEngine -  chr2:129403408        7.44e+06    5.0 m       40.3 s     12.2%        41.0 m    36.0 m 
+INFO  15:04:10,919 TraversalEngine -  chr2:169770380        8.21e+06    5.5 m       40.2 s     13.5%        40.7 m    35.2 m 
+INFO  15:04:40,942 TraversalEngine -  chr2:210015649        8.98e+06    6.0 m       40.1 s     14.8%        40.5 m    34.5 m 
+INFO  15:05:10,962 TraversalEngine -    chr3:2703283        9.72e+06    6.5 m       40.1 s     15.9%        40.8 m    34.3 m 
+INFO  15:05:40,998 TraversalEngine -   chr3:39021690        1.05e+07    7.0 m       40.1 s     17.1%        41.0 m    33.9 m 
+INFO  15:06:11,013 TraversalEngine -   chr3:72381974        1.13e+07    7.5 m       40.0 s     18.2%        41.3 m    33.8 m 
+INFO  15:06:41,085 TraversalEngine -  chr3:115525092        1.20e+07    8.0 m       40.0 s     19.6%        40.9 m    32.9 m 
+INFO  15:07:11,090 TraversalEngine -  chr3:152425867        1.28e+07    8.5 m       39.9 s     20.8%        41.0 m    32.5 m 
+INFO  15:07:41,098 TraversalEngine -  chr3:190372225        1.35e+07    9.0 m       39.9 s     22.0%        41.0 m    32.0 m 
+INFO  15:08:11,103 TraversalEngine -   chr4:25836683        1.43e+07    9.5 m       39.9 s     23.1%        41.2 m    31.7 m 
+INFO  15:08:41,141 TraversalEngine -   chr4:70548462        1.50e+07   10.0 m       40.0 s     24.5%        40.8 m    30.8 m 
+INFO  15:09:11,163 TraversalEngine -  chr4:113350972        1.58e+07   10.5 m       40.0 s     25.9%        40.6 m    30.1 m 
+INFO  15:09:41,177 TraversalEngine -  chr4:156707780        1.65e+07   11.0 m       39.9 s     27.3%        40.3 m    29.3 m 
+INFO  15:10:11,199 TraversalEngine -    chr5:6453638        1.73e+07   11.5 m       39.9 s     28.6%        40.3 m    28.7 m 
+INFO  15:10:41,235 TraversalEngine -   chr5:44636858        1.80e+07   12.0 m       39.9 s     29.8%        40.3 m    28.3 m 
+INFO  15:11:11,263 TraversalEngine -   chr5:89211763        1.88e+07   12.5 m       39.9 s     31.3%        40.0 m    27.5 m 
+INFO  15:11:41,276 TraversalEngine -  chr5:132014390        1.96e+07   13.0 m       39.9 s     32.6%        39.9 m    26.9 m 
+INFO  15:12:11,292 TraversalEngine -  chr5:167748433        2.03e+07   13.5 m       39.9 s     33.8%        40.0 m    26.5 m 
+INFO  15:12:41,314 TraversalEngine -   chr6:19456889        2.11e+07   14.0 m       39.9 s     34.9%        40.2 m    26.2 m 
+INFO  15:13:11,330 TraversalEngine -   chr6:54293672        2.18e+07   14.5 m       39.9 s     36.0%        40.3 m    25.8 m 
+INFO  15:13:41,344 TraversalEngine -   chr6:98741584        2.26e+07   15.0 m       39.9 s     37.4%        40.1 m    25.1 m 
+INFO  15:14:11,365 TraversalEngine -  chr6:137865030        2.33e+07   15.5 m       39.9 s     38.7%        40.1 m    24.6 m 
+INFO  15:14:41,394 TraversalEngine -    chr7:2172165        2.41e+07   16.0 m       39.9 s     39.8%        40.2 m    24.2 m 
+INFO  15:15:11,406 TraversalEngine -   chr7:39203667        2.48e+07   16.5 m       39.9 s     41.0%        40.3 m    23.8 m 
+INFO  15:15:41,409 TraversalEngine -   chr7:78462957        2.56e+07   17.0 m       39.9 s     42.3%        40.2 m    23.2 m 
+INFO  15:16:11,442 TraversalEngine -  chr7:117482015        2.63e+07   17.5 m       39.9 s     43.5%        40.2 m    22.7 m 
+INFO  15:16:41,483 TraversalEngine -  chr7:154630176        2.71e+07   18.0 m       39.9 s     44.7%        40.3 m    22.3 m 
+INFO  15:17:11,507 TraversalEngine -   chr8:29413110        2.78e+07   18.5 m       39.9 s     45.8%        40.4 m    21.9 m 
+INFO  15:17:41,521 TraversalEngine -   chr8:67636351        2.86e+07   19.0 m       39.9 s     47.1%        40.4 m    21.4 m 
+INFO  15:18:11,535 TraversalEngine -  chr8:106037631        2.94e+07   19.5 m       39.9 s     48.3%        40.4 m    20.9 m 
+INFO  15:18:41,547 TraversalEngine -  chr8:142756291        3.01e+07   20.0 m       39.8 s     49.5%        40.4 m    20.4 m 
+INFO  15:19:11,550 TraversalEngine -   chr9:34112258        3.09e+07   20.5 m       39.9 s     50.7%        40.5 m    20.0 m 
+INFO  15:19:41,599 TraversalEngine -   chr9:93957377        3.16e+07   21.0 m       39.9 s     52.6%        40.0 m    18.9 m 
+INFO  15:20:11,642 TraversalEngine -  chr9:127805611        3.24e+07   21.5 m       39.9 s     53.7%        40.1 m    18.6 m 
+INFO  15:20:41,643 TraversalEngine -  chr10:23776009        3.31e+07   22.0 m       39.9 s     54.8%        40.2 m    18.2 m 
+INFO  15:21:11,654 TraversalEngine -  chr10:63901096        3.39e+07   22.5 m       39.9 s     56.1%        40.1 m    17.6 m 
+INFO  15:21:41,661 TraversalEngine - chr10:100331300        3.46e+07   23.0 m       39.9 s     57.3%        40.2 m    17.2 m 
+INFO  15:22:11,662 TraversalEngine -    chr11:313720        3.53e+07   23.5 m       39.9 s     58.4%        40.3 m    16.8 m 
+INFO  15:22:41,676 TraversalEngine -  chr11:36338799        3.61e+07   24.0 m       39.9 s     59.5%        40.3 m    16.3 m 
+INFO  15:23:11,676 TraversalEngine -  chr11:74139932        3.68e+07   24.5 m       39.9 s     60.7%        40.4 m    15.8 m 
+INFO  15:23:41,693 TraversalEngine - chr11:112675996        3.76e+07   25.0 m       39.9 s     62.0%        40.4 m    15.3 m 
+INFO  15:24:11,708 TraversalEngine -  chr12:11236854        3.84e+07   25.5 m       39.9 s     63.1%        40.5 m    14.9 m 
+INFO  15:24:41,714 TraversalEngine -  chr12:52191724        3.91e+07   26.0 m       39.9 s     64.4%        40.4 m    14.4 m 
+INFO  15:25:11,747 TraversalEngine -  chr12:91491040        3.99e+07   26.5 m       39.9 s     65.7%        40.4 m    13.9 m 
+INFO  15:25:41,773 TraversalEngine - chr12:126293874        4.06e+07   27.0 m       39.9 s     66.8%        40.5 m    13.4 m 
+INFO  15:26:11,812 TraversalEngine -  chr13:47119686        4.13e+07   27.5 m       39.9 s     68.5%        40.2 m    12.6 m 
+INFO  15:26:41,846 TraversalEngine -  chr13:91624808        4.21e+07   28.0 m       39.9 s     70.0%        40.0 m    12.0 m 
+INFO  15:27:11,884 TraversalEngine -  chr14:32694450        4.28e+07   28.5 m       39.9 s     71.7%        39.7 m    11.2 m 
+INFO  15:27:41,921 TraversalEngine -  chr14:71201851        4.36e+07   29.0 m       40.0 s     73.0%        39.8 m    10.7 m 
+INFO  15:28:11,942 TraversalEngine - chr14:105168693        4.43e+07   29.5 m       40.0 s     74.1%        39.8 m    10.3 m 
+INFO  15:28:41,956 TraversalEngine -  chr15:57047933        4.50e+07   30.0 m       40.0 s     76.0%        39.5 m     9.5 m 
+INFO  15:29:11,968 TraversalEngine -  chr15:91718782        4.58e+07   30.5 m       40.0 s     77.1%        39.6 m     9.1 m 
+INFO  15:29:41,975 TraversalEngine -  chr16:22507959        4.65e+07   31.0 m       40.0 s     78.2%        39.7 m     8.7 m 
+INFO  15:30:11,986 TraversalEngine -  chr16:66971089        4.72e+07   31.5 m       40.0 s     79.6%        39.6 m     8.1 m 
+INFO  15:30:42,022 TraversalEngine -   chr17:7027581        4.80e+07   32.0 m       40.1 s     80.6%        39.7 m     7.7 m 
+INFO  15:31:12,032 TraversalEngine -  chr17:42713548        4.87e+07   32.5 m       40.1 s     81.7%        39.8 m     7.3 m 
+INFO  15:31:42,067 TraversalEngine -  chr17:76411135        4.94e+07   33.0 m       40.1 s     82.8%        39.9 m     6.9 m 
+INFO  15:32:12,077 TraversalEngine -  chr18:33094395        5.01e+07   33.5 m       40.1 s     84.1%        39.9 m     6.3 m 
+INFO  15:32:42,096 TraversalEngine -  chr18:69824259        5.09e+07   34.0 m       40.1 s     85.3%        39.9 m     5.9 m 
+INFO  15:33:12,117 TraversalEngine -  chr19:19674160        5.16e+07   34.5 m       40.1 s     86.3%        40.0 m     5.5 m 
+INFO  15:33:42,125 TraversalEngine -  chr19:54059799        5.24e+07   35.0 m       40.1 s     87.4%        40.1 m     5.1 m 
+INFO  15:34:12,143 TraversalEngine -  chr20:30506625        5.31e+07   35.5 m       40.2 s     88.5%        40.1 m     4.6 m 
+INFO  15:34:42,162 TraversalEngine -   chr21:9700468        5.38e+07   36.0 m       40.2 s     89.9%        40.1 m     4.0 m 
+INFO  15:35:12,176 TraversalEngine -  chr22:12172497        5.45e+07   36.5 m       40.2 s     91.5%        39.9 m     3.4 m 
+INFO  15:35:42,210 TraversalEngine -  chr22:46515021        5.53e+07   37.0 m       40.2 s     92.6%        40.0 m     3.0 m 
+INFO  15:36:12,229 TraversalEngine -   chrX:56219339        5.60e+07   37.5 m       40.2 s     94.6%        39.7 m     2.2 m 
+INFO  15:36:42,243 TraversalEngine -  chrX:139769191        5.67e+07   38.0 m       40.2 s     97.3%        39.1 m    64.4 s 
+INFO  15:37:03,600 BisulfiteGenotyper - Visited bases                                57238321 
+INFO  15:37:03,600 BisulfiteGenotyper - Callable bases                               56804301 
+INFO  15:37:03,600 BisulfiteGenotyper - Confidently called bases                     56298189 
+INFO  15:37:03,600 BisulfiteGenotyper - Visited bases in Cpg island                     0 
+INFO  15:37:03,600 BisulfiteGenotyper - Callable bases in Cpg island                     0 
+INFO  15:37:03,600 BisulfiteGenotyper - Confidently called bases in Cpg island                     0 
+INFO  15:37:03,600 BisulfiteGenotyper - % callable bases of all loci                 99.242 
+INFO  15:37:03,600 BisulfiteGenotyper - % confidently called bases of all loci       98.358 
+INFO  15:37:03,601 BisulfiteGenotyper - % confidently called bases of callable loci  99.109 
+INFO  15:37:03,601 BisulfiteGenotyper - Actual calls made                            55153430 
+INFO  15:37:03,601 BisulfiteGenotyper - Average good reads coverage in all visited loci                            0.8 
+INFO  15:37:03,601 BisulfiteGenotyper - Average good reads coverage in callable position                            0.8 
+INFO  15:37:03,601 BisulfiteGenotyper - Average good reads coverage in all position of Cpg island                            NaN 
+INFO  15:37:03,601 BisulfiteGenotyper - Average good reads coverage in callable position of Cpg island                            NaN 
+INFO  15:37:03,601 BisulfiteGenotyper - -------------Methylation summary(confidently called) in total  
+INFO  15:37:03,601 BisulfiteGenotyper - % average methylation level of confidently called GCG loci in total:       86.341 
+INFO  15:37:03,601 BisulfiteGenotyper -  Number of confidently called GCG loci in total:       115903 
+INFO  15:37:03,601 BisulfiteGenotyper - % average methylation level of confidently called HCH loci in total:       3.842 
+INFO  15:37:03,601 BisulfiteGenotyper -  Number of confidently called HCH loci in total:       8302260 
+INFO  15:37:03,601 BisulfiteGenotyper - % average methylation level of confidently called HCG loci in total:       69.957 
+INFO  15:37:03,601 BisulfiteGenotyper -  Number of confidently called HCG loci in total:       348710 
+INFO  15:37:03,601 BisulfiteGenotyper - % average methylation level of confidently called GCH loci in total:       59.324 
+INFO  15:37:03,601 BisulfiteGenotyper -  Number of confidently called GCH loci in total:       2189421 
+INFO  15:37:03,602 BisulfiteGenotyper - ---------- Methylation summary(confidently called) in Read Group:        scNOMeHiC 
+INFO  15:37:03,602 BisulfiteGenotyper - % methylation level of confidently called GCG loci in total:       86.341 
+INFO  15:37:03,602 BisulfiteGenotyper -  Number of confidently called GCG loci in total:       115903 
+INFO  15:37:03,602 BisulfiteGenotyper - % methylation level of confidently called GCH loci in total:       59.324 
+INFO  15:37:03,602 BisulfiteGenotyper -  Number of confidently called GCH loci in total:       2189421 
+INFO  15:37:03,602 BisulfiteGenotyper - % methylation level of confidently called HCG loci in total:       69.957 
+INFO  15:37:03,602 BisulfiteGenotyper -  Number of confidently called HCG loci in total:       348710 
+INFO  15:37:03,602 BisulfiteGenotyper - % methylation level of confidently called HCH loci in total:       3.842 
+INFO  15:37:03,602 BisulfiteGenotyper -  Number of confidently called HCH loci in total:       8302260 
+INFO  15:37:03,610 TraversalEngine - Total runtime 2302.86 secs, 38.38 min, 0.64 hours 
+INFO  15:37:03,610 TraversalEngine - 2259794 reads were filtered out during traversal out of 3097556 total (72.95%) 
+INFO  15:37:03,610 TraversalEngine -   -> 6969 reads (0.22% of total) failing BisulfiteIncompleteConvReadsFilter 
+INFO  15:37:03,610 TraversalEngine -   -> 845794 reads (27.31% of total) failing BisulfiteMismatchReadsFilter 
+INFO  15:37:03,610 TraversalEngine -   -> 382262 reads (12.34% of total) failing DuplicateReadFilter 
+INFO  15:37:03,610 TraversalEngine -   -> 63 reads (0.00% of total) failing InvertedDupsReadFilter 
+INFO  15:37:03,611 TraversalEngine -   -> 1024706 reads (33.08% of total) failing MappingQualityFilter 
+perl software/Bis-tools/utils/sortByRefAndCor.pl --k 1 --c 2 --tmp ./ 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.cytosine.raw.vcf reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa.fai > 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.cytosine.raw.sort.vcf 
+perl software/Bis-tools/utils/sortByRefAndCor.pl --k 1 --c 2 --tmp ./ 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.snp.raw.vcf reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa.fai > 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.snp.raw.sort.vcf 
+
+java -Xmx10G -jar software/Bis-tools/Bis-SNP/BisSNP-0.90.jar -R reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa -T VCFpostprocess -qual 10 -C GCH -C HCH -C GCG -C HCG -sb 0.0 -oldVcf 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.cytosine.raw.sort.vcf -snpVcf 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.snp.raw.sort.vcf -newVcf 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.cytosine.filtered.sort.vcf -o 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.cytosine.filtered.sort.vcf.cpgSummary.txt -minCT 1
+java -Xmx10G -jar software/Bis-tools/Bis-SNP/BisSNP-0.90.jar -R reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa -T VCFpostprocess -qual 10 -C GCH -C HCH -C GCG -C HCG -sb 0.0 -oldVcf 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.snp.raw.sort.vcf -snpVcf 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.snp.raw.sort.vcf -newVcf 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.snp.filtered.sort.vcf -o 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.snp.filtered.sort.vcf.cpgSummary.txt 
+
+INFO  15:37:39,536 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  15:37:39,540 HelpFormatter - The BisSNP-0.90, Compiled 2012/03/14 15:25:14 
+INFO  15:37:39,541 HelpFormatter - Based on The Genome Analysis Toolkit (GATK) v1.5-3-gbb2c10b (prebuild GATK package could be download here: ftp://ftp.broadinstitute.org/pub/gsa/GenomeAnalysisTK/GenomeAnalysisTK-1.5-3-gbb2c10b.tar.bz2) 
+INFO  15:37:39,541 HelpFormatter - Copyright (c) 2011 USC Epigenome Center 
+INFO  15:37:39,542 HelpFormatter - Please view our documentation at http://epigenome.usc.edu/publicationdata/bissnp2011/ 
+INFO  15:37:39,542 HelpFormatter - For support, please send email to lyping1986@gmail.com or benbfly@gmail.com 
+INFO  15:37:39,543 HelpFormatter - Program Args: -R reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa -T VCFpostprocess -qual 10 -C GCH -C HCH -C GCG -C HCG -sb 0.0 -oldVcf 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.cytosine.raw.sort.vcf -snpVcf 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.snp.raw.sort.vcf -newVcf 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.cytosine.filtered.sort.vcf -o 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.cytosine.filtered.sort.vcf.cpgSummary.txt -minCT 1 
+INFO  15:37:39,543 HelpFormatter - Date/Time: 2024/12/04 15:37:39 
+INFO  15:37:39,543 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  15:37:39,543 HelpFormatter - --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+INFO  15:37:39,563 RodBindingArgumentTypeDescriptor - Dynamically determined type of 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.cytosine.raw.sort.vcf to be VCF 
+INFO  15:37:39,566 RodBindingArgumentTypeDescriptor - Dynamically determined type of 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.snp.raw.sort.vcf to be VCF 
+INFO  15:37:39,567 GenomeAnalysisEngine - Strictness is SILENT 
+INFO  15:37:39,649 RMDTrackBuilder - Creating Tribble index in memory for file 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.cytosine.raw.sort.vcf 
+INFO  15:37:45,985 RMDTrackBuilder - Writing Tribble index to disk for file /projects/b1198/epifluidlab/eric/projects/scnomehic_opt/04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.cytosine.raw.sort.vcf.idx 
+INFO  15:38:20,324 RMDTrackBuilder - Creating Tribble index in memory for file 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.snp.raw.sort.vcf 
+INFO  15:38:20,578 RMDTrackBuilder - Writing Tribble index to disk for file /projects/b1198/epifluidlab/eric/projects/scnomehic_opt/04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.snp.raw.sort.vcf.idx 
+INFO  15:38:21,099 TraversalEngine - [INITIALIZATION COMPLETE; TRAVERSAL STARTING] 
+INFO  15:38:21,099 TraversalEngine -        Location processed.sites  runtime per.1M.sites completed total.runtime remaining 
+INFO  15:38:21,514 RMDTrackBuilder - Loading Tribble index from disk for file 04.alignment_snakemake/scNH_WBC_8_S8.TGACCA.calmd.snp.raw.sort.vcf 
+INFO  15:38:50,960 TraversalEngine -   chr7:85185362        2.39e+06   30.0 s       12.6 s     42.5%        70.6 s    40.6 s 
+INFO  15:39:20,964 TraversalEngine -  chr18:35003164        4.83e+06   60.0 s       12.4 s     84.2%        71.3 s    11.3 s 

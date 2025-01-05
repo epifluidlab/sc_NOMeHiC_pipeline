@@ -1,0 +1,3 @@
+00.raw_fastq/
+reference/hg38/*
+test.smk

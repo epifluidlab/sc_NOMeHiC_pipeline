@@ -1,0 +1,9 @@
+executor: slurm
+keep-going: true
+restart-times: 3
+use-conda: true
+
+default-resources:
+  slurm_partition: "genomics"
+  slurm_account: "b1042"
+  runtime: 2880

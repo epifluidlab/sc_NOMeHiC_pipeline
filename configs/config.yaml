@@ -1,0 +1,32 @@
+# working directory
+workdir: "/projects/b1198/epifluidlab/eric/projects/scnomehic_opt"
+
+# reference genome
+reference: "reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set"
+variants: "reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf"
+restriction_sites: "reference/hg38/hg38_DpnII.txt"
+
+# software
+picard: "/projects/b1198/epifluidlab/eric/software/picard/picard.jar"
+
+# fastq input directory and single cell index
+data: "00.raw_fastq"
+fileindex: "00.raw_fastq/index.txt"
+
+# adapter trimming parameters
+clip_r1: 15
+clip_r2: 15
+three_prime_clip_r1: 5
+three_prime_clip_r2: 5
+
+# GCHnorm genome intervals
+hg38_5kb_no_dark_regions: "reference/hg38/hg38.autosomes.5kb_interval.no_dark_regions.bed"
+hg38_250kb_no_dark_regions: "reference/hg38/hg38.autosomes.250kb_interval.no_dark_regions.bed"
+
+# qc analysis thresholds
+fragnum_threshold: 80000
+noncpg_threshold: 5
+GCH_threshold: 1000000
+HCG_threshold: 150000
+transrate_threshold: 0.7
+cis1kbnum_threshold: 2000
