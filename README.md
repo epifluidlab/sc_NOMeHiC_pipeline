@@ -114,6 +114,9 @@ Here, **these arguments** MUST be modified to proper file locations/paths for th
 - variants: .vcf file corresponding to reference genome of choice
 - restriction_sites: DpnII file
 - picard: path to your picard folder
+- bisulfitehic: path to bisulfitehic folder
+- bistools: path to bistools folder
+- scripts: path to scripts folder
 - data: path to folder with raw FASTQ files
 - fileindex: path to file with single cell indices
 
@@ -129,6 +132,9 @@ restriction_sites: "reference/hg38/hg38_DpnII.txt"
 
 # software
 picard: "/eric/software/picard/picard.jar"
+bisulfitehic: "software/bisulfitehic"
+bistools: "software/Bis-tools"
+scripts: "scripts"
 ```
 
 The further config file arguments are for pipeline step parameters, and can be edited at one's own discretion

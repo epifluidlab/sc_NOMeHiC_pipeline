@@ -86,6 +86,7 @@ rule demultiplex_fastqc_trim: # combination step to trigger re-runs if failed
     params:
         out_prefix = "01.demul_fastq_snakemake/{prefix}",
         outdir = "02.fastqc_out_snakemake",
+        bisulfitehic = config["bisulfitehic"],
 
         # trimming params
         outdir_fq = "03.trimmed_fastq_snakemake",
@@ -93,13 +94,12 @@ rule demultiplex_fastqc_trim: # combination step to trigger re-runs if failed
         clip_r2 = config["clip_r2"],
         three_prime_clip_r1 = config["three_prime_clip_r1"],
         three_prime_clip_r2 = config["three_prime_clip_r2"]
-
     log:
         "logs/00.demultiplex_snakemake/demultiplex_{prefix}_{index}.log"
     shell: # temporary sleep and touch() solution
         """
         echo $(pwd)
-        perl software/bisulfitehic/src/perl/demultiplex_ecker_scWGBS.pl \
+        perl {params.bisulfitehic}/src/perl/demultiplex_ecker_scWGBS.pl \
         {params.out_prefix} {input.index_file} {input.r1} {input.r2} \
         2> {log}
         sleep 2
@@ -132,7 +132,8 @@ rule mapping:
     benchmark: "benchmarks/02.mapping/alignment.{prefix}.{index}_benchmark.txt"
     params:
         reference = config["reference"],
-        picard = config["picard"]
+        picard = config["picard"],
+        bisulfitehic = config["bisulfitehic"]
     log:
         "logs/02.alignment_snakemake/realignment.{prefix}.{index}.log"
     shell: # how to load jdk here without messing up -> ok it works, wondering if this is best way to go about this
@@ -140,8 +141,8 @@ rule mapping:
         module load java/jdk-17.0.2+8
         picard={params.picard}
 
-        java -Xmx15G -Djava.library.path=software/bisulfitehic/jbwa/jbwa-1.0.0/src/main/native \
-        -cp "software/bisulfitehic/target/bisulfitehic-0.38-jar-with-dependencies.jar:software/bisulfitehic/jbwa/jbwa-1.0.0/jbwa.jar" \
+        java -Xmx15G -Djava.library.path={params.bisulfitehic}/jbwa/jbwa-1.0.0/src/main/native \
+        -cp "{params.bisulfitehic}/target/bisulfitehic-0.38-jar-with-dependencies.jar:{params.bisulfitehic}/jbwa/jbwa-1.0.0/jbwa.jar" \
         main.java.edu.mit.compbio.bisulfitehic.mapping.Bhmem {params.reference}.fa \
         {output.bam} {input.r1_trimmed} {input.r2_trimmed} \
         -t {threads} -rgId {wildcards.prefix}.{wildcards.index} -rgSm scNOMeHiC -nonDirectional -pbat -buffer 1000 -enzymeList {params.reference}.DpnII.span_region.bedgraph -outputMateDiffChr \
@@ -199,12 +200,13 @@ rule qc:
         mem_mb=16000
     benchmark: "benchmarks/qc/qc.{prefix}.{index}_benchmark.txt"
     params:
+        bisulfitehic = config["bisulfitehic"]
     log:
         "logs/04.qc_snakemake/qc.{prefix}.{index}.log"
     shell: # is this sort redundant?
         # samtools sort -@ 8 -n -o ${inputfolder}/${sample}_sorted_by_name.calmd.bam ${inputfolder}/${sample}.calmd.bam
         """
-        python software/bisulfitehic/src/python/mh_reads_summary.v2.py \
+        python {params.bisulfitehic}/src/python/mh_reads_summary.v2.py \
         --in_cram {input.sorted_bam} --out_summary {output.summary} \
         2> {log}
         """
@@ -231,7 +233,8 @@ rule bisqc:
         qc_outdir = "07.bistools_snakemake/qc/{prefix}.{index}/",
         methylation_outdir = "07.bistools_snakemake/methylation/{prefix}.{index}/",
         WCG_outdir = "07.bistools_snakemake/WCG/{prefix}.{index}/",
-        picard = config["picard"]
+        picard = config["picard"],
+        bistools = config["bistools"]
     log:
         "logs/07.bisqc_snakemake/bisqc.{prefix}.{index}"
     shell:
@@ -239,9 +242,9 @@ rule bisqc:
         picard={params.picard}
         module load java/jdk-17.0.2+8
         module load libpng
-        BISTOOLS=software/Bis-tools
+        BISTOOLS={params.bistools}
 
-        perl software/Bis-tools/Bis-QC/Bis-QC.pl \
+        perl {params.bistools}/Bis-QC/Bis-QC.pl \
         --QC_mode 1 \
         --disable_enzyme_eff_check \
         --disable_coverage_check \
@@ -250,7 +253,7 @@ rule bisqc:
         --mem 10 \
         --genome {params.reference}.fa \
         --dbsnp {params.vcf} \
-        --bistools_path software/Bis-tools {input.calmd_bam} \
+        --bistools_path {params.bistools} {input.calmd_bam} \
         > {log} 2>&1
         cp {params.indir}*.txt {params.qc_outdir}
         cp {params.indir}*.pdf {params.qc_outdir}
@@ -307,7 +310,8 @@ rule bistools:
         qc_outdir = "07.bistools_snakemake/qc/{prefix}.{index}/",
         methylation_outdir = "07.bistools_snakemake/methylation/{prefix}.{index}/",
         WCG_outdir = "07.bistools_snakemake/WCG/{prefix}.{index}/",
-        picard = config["picard"]
+        picard = config["picard"],
+        bistools = config["bistools"]
     log:
         "logs/07.bistools_snakemake/bistools.{prefix}.{index}"
     shell:
@@ -315,22 +319,22 @@ rule bistools:
         picard={params.picard}
         module load java/jdk-17.0.2+8
         module load libpng
-        BISTOOLS=software/Bis-tools
+        BISTOOLS={params.bistools}
 
-        perl software/Bis-tools/Bis-SNP/bissnp_easy_usage.pl -use_bad_mates \
-        --bistools_path software/Bis-tools --nomeseq --lowCov --mmq 30 \
+        perl {params.bistools}/Bis-SNP/bissnp_easy_usage.pl -use_bad_mates \
+        --bistools_path {params.bistools} --nomeseq --lowCov --mmq 30 \
         --nt 1 --mem 10 \
-        software/Bis-tools/Bis-SNP/BisSNP-0.90.jar \
+        {params.bistools}/Bis-SNP/BisSNP-0.90.jar \
         {input.calmd_bam} {params.reference}.fa {params.vcf} > {log} 2>&1
         mv {params.indir}*vcf* {params.methylation_outdir}
         mv {params.indir}*.bedgraph {params.methylation_outdir}
         mv {params.indir}*.bed {params.methylation_outdir}
         mv {params.indir}*.bw {params.methylation_outdir}
 
-        perl software/Bis-tools/Bis-SNP/bissnp_easy_usage.pl --use_bad_mates \
-        --bistools_path software/Bis-tools --cytosines WCG,2 --outMode 2 --allC --mmq 30 \
+        perl {params.bistools}/Bis-SNP/bissnp_easy_usage.pl --use_bad_mates \
+        --bistools_path {params.bistools} --cytosines WCG,2 --outMode 2 --allC --mmq 30 \
         --nt 12 --mem 60 \
-        software/Bis-tools/Bis-SNP/BisSNP-0.90.jar \
+        {params.bistools}/Bis-SNP/BisSNP-0.90.jar \
         {input.calmd_bam} {params.reference}.fa {params.vcf} >> {log} 2>&1
         mv {params.indir}*vcf* {params.WCG_outdir}
         mv {params.indir}*.bedgraph {params.WCG_outdir}
@@ -347,12 +351,13 @@ rule methylation:
     resources:
         mem_mb=16000
     params:
-        sample = "{prefix}.{index}"
+        sample = "{prefix}.{index}",
+        scripts = config["scripts"]
     log:
         "logs/08.methylation_snakemake/methylation.{prefix}.{index}.log"
     shell:
         """
-        python scripts/calcmethylation.py \
+        python {params.scripts}/calcmethylation.py \
         --chrom_size_filepath reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.chrom.sizes \
         --sample_prefix {params.sample} \
         --outfolder 08.methylation_snakemake \

@@ -8,6 +8,9 @@ restriction_sites: "reference/hg38/hg38_DpnII.txt"
 
 # software
 picard: "/projects/b1198/epifluidlab/eric/software/picard/picard.jar"
+bisulfitehic: "software/bisulfitehic"
+bistools: "software/Bis-tools"
+scripts: "scripts"
 
 # fastq input directory and single cell index
 data: "00.raw_fastq"
