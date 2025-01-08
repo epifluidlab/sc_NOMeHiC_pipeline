@@ -96,7 +96,21 @@ conda deactivate
 ```
 
 ## Download reference genome of choice, and generate Bisulfite genome from reference genome
-(Unfinished part of readme here, to be filled with Bismark's steps)
+1. Download reference genome of choice (e.g. hg38 or mm10 for human or mouse genome respectively from https://hgdownload.soe.ucsc.edu/downloads.html)
+- You can `wget` to obtain a genome of choice, for example
+```
+wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/001/405/GCA_000001405.15_GRCh38/seqs_for_alignment_pipelines.ucsc_ids/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz
+gunzip GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.gz
+```
+
+2. Create a .fai index and bwa indices using samtools and bwa commands (code below uses same example genome as above)
+```
+samtools faidx GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
+bwa index GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
+```
+
+3. Use Bismark genome preparation to convert genome to bisulfite genome and move all relevant genomes to reference genome folder of choice (to designate in config file)
+- Follow Bismark genome preparation documentation here: https://felixkrueger.github.io/Bismark/bismark/genome_preparation/
 
 ## Running the pipeline with Snakemake commands
 Snakemake is a workflow management tool that links outputs to inputs from one step to another in processes called "rules", in order to work **backwards** from a desired output to create a file pipeline that leads to it. For a more detailed description of how Snakemake operates, read the documentation (https://snakemake.readthedocs.io/). Here, we will only provide a brief list of commands useful to running the pipeline
