@@ -112,6 +112,8 @@ bwa index GCA_000001405.15_GRCh38_no_alt_analysis_set.fna
 3. Use Bismark genome preparation to convert genome to bisulfite genome and move all relevant genomes to reference genome folder of choice (to designate in config file)
 - Follow Bismark genome preparation documentation here: https://felixkrueger.github.io/Bismark/bismark/genome_preparation/
 
+**IMPORTANT** If using mouse genome or any non-human species, make sure to edit CHROM variable at top of Snakefile and schicluster.smk to be lists from e.g. 1-19 (denoting chromosome numbers corresponding to mouse genome. Use appropriate chromosome numbering relevant to species)
+
 ## Running the pipeline with Snakemake commands
 Snakemake is a workflow management tool that links outputs to inputs from one step to another in processes called "rules", in order to work **backwards** from a desired output to create a file pipeline that leads to it. For a more detailed description of how Snakemake operates, read the documentation (https://snakemake.readthedocs.io/). Here, we will only provide a brief list of commands useful to running the pipeline
 
