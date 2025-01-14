@@ -92,7 +92,7 @@ rule generatematrix:
         directory("06.hiccluster_snakemake/hicluster_250kb_raw_dir/{prefix}.{index}"),
         donefile = touch("06.hiccluster_snakemake/hicluster_250kb_raw_dir/{prefix}.{index}.generatematrix.done")
     conda:
-        "../envs/schicluster.yaml"
+        "../envs/schicluster_test.yaml"
     threads: 1
     params:
         reference = config["reference"],

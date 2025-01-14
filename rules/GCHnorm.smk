@@ -35,12 +35,13 @@ rule bed2bigwig:
     resources:
         mem_mb = 16000
     params:
-        out_prefix = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH"
+        out_prefix = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH",
+        scripts = config["scripts"]
     log:
         "logs/09.GCHnorm/bed2bw/bed2bw.{prefix}.{index}.log"
     shell:
         """
-        perl scripts/bed6plus2bw.pl {params.out_prefix} {input.bed} \
+        perl {params.scripts}/bed6plus2bw.pl {params.out_prefix} {input.bed} \
         2> {log}
         """
 
@@ -103,7 +104,8 @@ rule methytab2pbetabinom:
     resources:
         mem_mb=16000
     params:
-        wd = config["workdir"]
+        wd = config["workdir"],
+        scripts = config["scripts"]
     log:
         "logs/09.GCHnorm/tab2pbeta/tab2pbeta.{prefix}.{index}.log"
     shell:
@@ -115,7 +117,7 @@ rule methytab2pbetabinom:
         output={output.pbetabinom_5kb} \
         minCT=1 \
         logp=T \
-        < scripts/methy_tab_to_pbetabinom.R \
+        < {params.scripts}/methy_tab_to_pbetabinom.R \
         2> {log}
         """
         # R --no-restore --no-save --args \
@@ -125,4 +127,4 @@ rule methytab2pbetabinom:
         # output={output.pbetabinom_250kb} \
         # minCT=1 \
         # logp=T \
-        # < scripts/methy_tab_to_pbetabinom.R
+        # < {params.scripts}/methy_tab_to_pbetabinom.R

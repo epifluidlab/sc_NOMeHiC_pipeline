@@ -171,10 +171,12 @@ To run the pipeline locally. Essentially, the command `snakemake` reads from the
 ### Running the Snakemake pipeline on a cluster
 Please see `profiles/slurm/config.yaml` and edit the arguments under `default-resources` to change the SLURM partition, account, wall time, and max number of jobs submittable to the SLURM. Once that is done, you can run:
 ```
-snakemake --profile profiles/slurm
+snakemake --profile profiles/slurm --jobs <number_of_jobs>
 ```
 
 To execute the pipeline on your cluster
+
+**IMPORTANT** In order for scHiCluster to run, you must have minimum 50 cells in your sample. Otherwise, comment out 06.hiccluster output in `rule: all` output and remove comment from `generatematrix.done` expanded output to simply only generate sparse single cell HiC matrices
 
 ### Tracing errors
 If errors arise, read the terminal output for said errors, or the most recent dated snakemake log in `.snakemake/logs/<YYYY-DD-MM...snakemake.log>` to trace error messages or to be redirected to job-specific log files within the folder `logs`
