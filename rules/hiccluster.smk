@@ -76,11 +76,12 @@ rule hicprocess:
         hic_matrix = "06.hiccluster_snakemake/{prefix}.{index}.hic_matrix.txt.gz"
     threads: 1
     params:
+        scripts = config["scripts"]
     log:
         "logs/06.hiccluster_snakemake/hicprocess/hicprocess.{prefix}.{index}.log"
     shell:
         """
-        scripts/preprocess.hg38.sh \
+        {params.scripts}/preprocess.hg38.sh \
         {input.hic} {output.hic_matrix} \
         2> {log}
         """

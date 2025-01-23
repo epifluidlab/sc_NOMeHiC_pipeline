@@ -42,7 +42,7 @@ rule all: # does this need only the end output or every single one??
         ## generate-matrix output (single cell dependent)
         # expand("06.hiccluster_snakemake/hicluster_250kb_raw_dir/{prefix}.{index}.generatematrix.done", prefix = FASTQ_PREFIXES, index = INDICES),
         ## merge-chromosome-data output (perhaps for later step?)
-        # "06.hiccluster_snakemake/hicluster_250kb_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5",
+        "06.hiccluster_snakemake/hicluster_250kb_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5",
 
         # 07.bistools output
         expand("07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.BisSNP-0.90.WCG.coverage.bedgraph", prefix = FASTQ_PREFIXES, index = INDICES),
@@ -352,13 +352,14 @@ rule methylation:
         mem_mb=16000
     params:
         sample = "{prefix}.{index}",
-        scripts = config["scripts"]
+        scripts = config["scripts"],
+        reference = config["reference"]
     log:
         "logs/08.methylation_snakemake/methylation.{prefix}.{index}.log"
     shell:
         """
         python {params.scripts}/calcmethylation.py \
-        --chrom_size_filepath reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.chrom.sizes \
+        --chrom_size_filepath {params.reference}.chrom.sizes \
         --sample_prefix {params.sample} \
         --outfolder 08.methylation_snakemake \
         --bin_size 1000000 \
