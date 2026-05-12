@@ -9,12 +9,12 @@ def read_chrom_sizes(filepath):
     chromsize = chromsize[chromsize['chr'].isin([f'chr{i}' for i in range(1, 23)] + ['chrX', 'chrY'])]
     return chromsize
 
-def generate_methyldf(chromsize):
+def generate_methyldf(chromsize, bin_size):
     methyldf = pd.DataFrame(columns=['chr', 'start', 'end'])
     for i in chromsize['chr'].unique().tolist():
         size = chromsize[chromsize['chr'] == i]['size'].values[0]
-        start = np.arange(0, size, 1000000)
-        end = np.arange(1000000, size + 1000000, 1000000)
+        start = np.arange(0, size, bin_size)
+        end = np.arange(bin_size, size + bin_size, bin_size)
         for j in range(len(start)):
             methyldf.loc[i + ':' + (start[j] + 1).astype(str) + '-' + end[j].astype(str)] = [i, start[j] + 1, end[j]]
     return methyldf
@@ -55,7 +55,7 @@ def main():
     chromsize = read_chrom_sizes(args.chrom_size_filepath)
 
     # Generate the base methylation DataFrame
-    methyldf = generate_methyldf(chromsize)
+    methyldf = generate_methyldf(chromsize, args.bin_size)
 
     # Compute methylation levels for the specified cell
     methyldf = compute_methylation_levels(methyldf, args.sample_prefix)

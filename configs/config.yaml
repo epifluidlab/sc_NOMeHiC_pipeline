@@ -2,13 +2,13 @@
 workdir: "/gpfs/projects/b1198/epifluidlab/yoshii/sc_nomehic_cellline/gm_sc_new"
 
 # reference genome
-reference: "/gpfs/projects/b1198/epifluidlab/yoshii/meningioma_scnomehic/reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set"
-variants: "/gpfs/projects/b1198/epifluidlab/yoshii/meningioma_scnomehic/reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf"
-restriction_sites: "/gpfs/projects/b1198/epifluidlab/yoshii/meningioma_scnomehic/reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa_DpnII.txt"
+reference: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set"
+variants: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf"
+restriction_sites: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa_DpnII.txt"
 
 # software
 picard: "/gpfs/projects/b1198/epifluidlab/yoshii/software/picard/picard.jar"
-bisulfitehic: "/gpfs/projects/b1198/epifluidlab/yoshii/software/bisulfitehic"
+bisulfitehic: "/gpfs/projects/b1198/epifluidlab/yoshii/software/bisulfiteHic"
 bistools: "/gpfs/projects/b1198/epifluidlab/yoshii/software/Bis-tools"
 scripts: "/gpfs/projects/b1198/epifluidlab/yoshii/software/sc_NOMeHiC_pipeline/scripts"
 

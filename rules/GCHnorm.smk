@@ -17,7 +17,7 @@ def get_fastq_prefixes(directory):
 
 FASTQ_PREFIXES = get_fastq_prefixes(config["data"])
 
-with open('00.raw_fastq/index.txt') as f:
+with open(config["fileindex"]) as f:
     INDICES = [line.strip() for line in f]
 
 # rule all:

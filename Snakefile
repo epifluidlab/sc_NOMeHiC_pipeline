@@ -22,7 +22,7 @@ FASTQ_PREFIXES = get_fastq_prefixes(config["data"])
 with open(config["fileindex"]) as f:
     INDICES = [line.strip() for line in f]
 print(INDICES)
-#include: "rules/hiccluster.smk"
+include: "rules/hiccluster.smk"
 #include: "rules/GCHnorm.smk"
 
 rule all: # does this need only the end output or every single one??

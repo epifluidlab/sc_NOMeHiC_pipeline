@@ -18,7 +18,7 @@ def get_fastq_prefixes(directory):
 
 FASTQ_PREFIXES = get_fastq_prefixes(config["data"])
 
-with open('00.raw_fastq/index.txt') as f:
+with open(config["fileindex"]) as f:
     INDICES = [line.strip() for line in f]
 
 SAMPLES = [f"{prefix}.{index}" for prefix in FASTQ_PREFIXES for index in INDICES]
@@ -182,9 +182,10 @@ rule imputelist:
     params:
         imputed_cells = "06.hiccluster_snakemake/hicluster_250kb_impute_dir/chr{chr}/*chr{chr}_pad1_std1_rp0.5_sqrtvc.hdf5"
     log:
+        "logs/06.hiccluster_snakemake/imputelist/imputelist.chr{chr}.log"
     shell:
         """
-        ls {params.imputed_cells} > {output.file_list}
+        ls {params.imputed_cells} > {output.file_list} 2> {log}
         """
 
 rule concatcells:
@@ -220,9 +221,10 @@ rule mergechrom:
         outprefix = "06.hiccluster_snakemake/hicluster_250kb_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc",
         concat_files = "06.hiccluster_snakemake/hicluster_250kb_embed_dir/pad1_std1_rp0.5_sqrtvc_*npy"
     log:
+        "logs/06.hiccluster_snakemake/mergechrom/mergechrom.log"
     shell:
         # merge chromosomes (hicluster_100kb_embed_dir/pad1_std1_rp0.5_sqrtvc.svd50.hdf5)
         """
-        ls {params.concat_files} > {output.embed_file_list}
-        hicluster embed-mergechr --embed_list {output.embed_file_list} --outprefix {params.outprefix}
+        ls {params.concat_files} > {output.embed_file_list} 2> {log}
+        hicluster embed-mergechr --embed_list {output.embed_file_list} --outprefix {params.outprefix} 2>> {log}
         """
