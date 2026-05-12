@@ -1,4 +1,4 @@
-name: schicluster_test
+name: hic_env
 channels:
   - r
   - bioconda
@@ -9,5 +9,5 @@ dependencies:
   - git
   - opencv
   - pip:
-    - git+https://github.com/zhoujt1994/scHiCluster.git
-  
+      - git+https://github.com/zhoujt1994/scHiCluster.git
+

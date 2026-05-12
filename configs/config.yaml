@@ -1,20 +1,20 @@
 # working directory
-workdir: "/projects/b1198/epifluidlab/eric/projects/scnomehic_opt"
+workdir: "/gpfs/projects/b1198/epifluidlab/yoshii/sc_nomehic_cellline/gm_sc_new"
 
 # reference genome
-reference: "reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set"
-variants: "reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf"
-restriction_sites: "reference/hg38/hg38_DpnII.txt"
+reference: "/gpfs/projects/b1198/epifluidlab/yoshii/meningioma_scnomehic/reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set"
+variants: "/gpfs/projects/b1198/epifluidlab/yoshii/meningioma_scnomehic/reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf"
+restriction_sites: "/gpfs/projects/b1198/epifluidlab/yoshii/meningioma_scnomehic/reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa_DpnII.txt"
 
 # software
-picard: "/projects/b1198/epifluidlab/eric/software/picard/picard.jar"
-bisulfitehic: "software/bisulfitehic"
-bistools: "software/Bis-tools"
-scripts: "scripts"
+picard: "/gpfs/projects/b1198/epifluidlab/yoshii/software/picard/picard.jar"
+bisulfitehic: "/gpfs/projects/b1198/epifluidlab/yoshii/software/bisulfitehic"
+bistools: "/gpfs/projects/b1198/epifluidlab/yoshii/software/Bis-tools"
+scripts: "/gpfs/projects/b1198/epifluidlab/yoshii/software/sc_NOMeHiC_pipeline/scripts"
 
 # fastq input directory and single cell index
-data: "00.raw_fastq"
-fileindex: "00.raw_fastq/index.txt"
+data: "00.raw_data/"
+fileindex: "00.raw_data/index.txt"
 
 # adapter trimming parameters
 clip_r1: 15
@@ -23,8 +23,8 @@ three_prime_clip_r1: 5
 three_prime_clip_r2: 5
 
 # GCHnorm genome intervals
-hg38_5kb_no_dark_regions: "reference/hg38/hg38.autosomes.5kb_interval.no_dark_regions.bed"
-hg38_250kb_no_dark_regions: "reference/hg38/hg38.autosomes.250kb_interval.no_dark_regions.bed"
+hg38_5kb_no_dark_regions: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/genome_bins_5kb.bed"
+hg38_250kb_no_dark_regions: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/genome_bins_250kb.bed"
 
 # qc analysis thresholds
 fragnum_threshold: 80000

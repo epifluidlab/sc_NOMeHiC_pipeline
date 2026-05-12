@@ -11,17 +11,19 @@ def get_fastq_prefixes(directory):
     prefixes = set()
     for filename in os.listdir(directory):
         if filename.endswith('.fastq.gz'):
+        #if filename.endswith('.R2_fastqc.zip'):
+            #prefix = filename.rsplit('.')[0]
             prefix = filename.rsplit('_', 2)[0]  # keep everything before the last two underscores
             prefixes.add(prefix)
     return list(prefixes)
 
 FASTQ_PREFIXES = get_fastq_prefixes(config["data"])
-
+#FASTQ_PREFIXES = get_fastq_prefixes('/gpfs/projects/b1198/epifluidlab/yoshii/meningioma_scnomehic/data_batch_2/02.fastqc_out_snakemake')
 with open(config["fileindex"]) as f:
     INDICES = [line.strip() for line in f]
-
-include: "rules/hiccluster.smk"
-include: "rules/GCHnorm.smk"
+print(INDICES)
+#include: "rules/hiccluster.smk"
+#include: "rules/GCHnorm.smk"
 
 rule all: # does this need only the end output or every single one??
     input:
@@ -51,7 +53,7 @@ rule all: # does this need only the end output or every single one??
         expand("08.methylation_snakemake/{prefix}.{index}_methylation.txt", prefix = FASTQ_PREFIXES, index = INDICES),
 
         # 09.GCHnorm output
-        expand("09.GCHnorm_snakemake/methytab2pbetabinom/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.5kb_interval.pbetabinom.txt", prefix = FASTQ_PREFIXES, index = INDICES)
+        #expand("09.GCHnorm_snakemake/methytab2pbetabinom/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.5kb_interval.pbetabinom.txt", prefix = FASTQ_PREFIXES, index = INDICES)
 
 rule demultiplex_fastqc_trim: # combination step to trigger re-runs if failed
     input:
@@ -99,6 +101,7 @@ rule demultiplex_fastqc_trim: # combination step to trigger re-runs if failed
     shell: # temporary sleep and touch() solution
         """
         echo $(pwd)
+        module load java
         perl {params.bisulfitehic}/src/perl/demultiplex_ecker_scWGBS.pl \
         {params.out_prefix} {input.index_file} {input.r1} {input.r2} \
         2> {log}
@@ -174,7 +177,7 @@ rule bamprocess:
     shell: # if doesn't work in a force rerun, remove threads and maybe 2>/dev/null
         """
         module load java/jdk-17.0.2+8
-        picard={params.picard}
+	picard={params.picard}
 
         samtools sort --threads {threads} -T {params.shortcut}.tmp -n {input.bam} | \
         samtools fixmate -m --threads {threads} - - | \
@@ -341,6 +344,13 @@ rule bistools:
         mv {params.indir}*.bed {params.WCG_outdir}
         mv {params.indir}*.bw {params.WCG_outdir}
         """
+
+rule rerun_bistools_all:
+    input:
+        expand("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.6plus2.bed",
+               prefix=FASTQ_PREFIXES, index=INDICES) +
+        expand("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.HCG.6plus2.bed",
+               prefix=FASTQ_PREFIXES, index=INDICES)
 
 rule methylation:
     input:

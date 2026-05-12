@@ -24,7 +24,7 @@ with open('00.raw_fastq/index.txt') as f:
 SAMPLES = [f"{prefix}.{index}" for prefix in FASTQ_PREFIXES for index in INDICES]
 
 # CHROM = [str(c) for c in range(1, 23)] + ['EBV', 'M', 'Un', 'X', 'Y']
-CHROM = [str(c) for c in range(1, 23)] + ['X']
+CHROM = [str(c) for c in range(1, 23)]
 
 def schic_exclude_missing_chrom():
     schic_passed = []
