@@ -45,6 +45,7 @@ rule qc:
         qc_summary_figures = "10.qc_analysis/qc_summary_figures.pdf",
         utilized_cell = "10.qc_analysis/utilized_cell.txt"
     params:
+        scripts = config["scripts"],
         fragnum_threshold = config["fragnum_threshold"],
         noncpg_threshold = config["noncpg_threshold"],
         GCH_threshold = config["GCH_threshold"],
@@ -53,7 +54,7 @@ rule qc:
         cis1kbnum_threshold = config["cis1kbnum_threshold"]
     shell:
         """
-        python qc_analysis.py \
+        python {params.scripts}/qc_analysis.py \
         --prefix_file {input.sc_prefixes} \
         --output_file {output.qc_summary} \
         --summary_pdf {output.qc_summary_figures} \
