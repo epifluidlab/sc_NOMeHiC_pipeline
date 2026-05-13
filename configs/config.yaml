@@ -14,9 +14,29 @@ bistools: "/gpfs/projects/b1198/epifluidlab/yoshii/software/Bis-tools"
 # NOTE: bistools/Bis-SNP/bissnp_nomehic_usage.pl is the scNOMe-HiC wrapper used by rule bistools.
 scripts: "/gpfs/projects/b1198/epifluidlab/yoshii/software/sc_NOMeHiC_pipeline/scripts"
 
+# ──────────────────────────────────────────────────────────────────────────
+# Pipeline starting mode
+#
+#   "raw"     — start from raw paired fastqs in `data/`. The workflow runs
+#               demultiplex_fastqc_trim and continues from mapping onward.
+#               `data` must contain files named `{prefix}_R1_001.fastq.gz`
+#               and `{prefix}_R2_001.fastq.gz`; prefixes are auto-discovered.
+#
+#   "trimmed" — start from already-trimmed fastqs in
+#               `03.trimmed_fastq_snakemake/{prefix}.{index}.R1_val_1.fq.gz`
+#               (and R2_val_2.fq.gz). The demultiplex_fastqc_trim rule and
+#               the 02.fastqc targets are skipped. `fastq_prefixes` (below)
+#               must list the cell prefixes.
+# ──────────────────────────────────────────────────────────────────────────
+start_from: "raw"
+
 # fastq input directory and single cell index
 data: "00.raw_data/"
 fileindex: "00.raw_data/index.txt"
+
+# Required when start_from == "trimmed"; ignored otherwise.
+# fastq_prefixes:
+#   - batch5_scD_1
 
 # adapter trimming parameters
 clip_r1: 15

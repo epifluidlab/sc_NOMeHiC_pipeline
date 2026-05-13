@@ -17,17 +17,18 @@ def get_fastq_prefixes(directory):
             prefixes.add(prefix)
     return list(prefixes)
 
-# FASTQ_PREFIXES sources:
-#   - if config['fastq_prefixes'] is set, use that list directly. This is the
-#     'start from already-trimmed inputs' mode: demux + fastqc + trim are
-#     skipped, and only the rules from mapping onward run.
-#   - else: scan config['data'] for raw fastqs (default production mode).
-if config.get("fastq_prefixes"):
-    FASTQ_PREFIXES = list(config["fastq_prefixes"])
-    SKIP_DEMUX_TRIM = True
-else:
+# Pipeline starting mode — see configs/config.yaml for the description.
+START_FROM = config.get("start_from", "raw")
+if START_FROM == "raw":
     FASTQ_PREFIXES = get_fastq_prefixes(config["data"])
     SKIP_DEMUX_TRIM = False
+elif START_FROM == "trimmed":
+    FASTQ_PREFIXES = list(config.get("fastq_prefixes") or [])
+    if not FASTQ_PREFIXES:
+        raise ValueError("start_from='trimmed' requires `fastq_prefixes` to be set in config (a list of cell prefixes).")
+    SKIP_DEMUX_TRIM = True
+else:
+    raise ValueError(f"Unknown start_from mode: {START_FROM!r}. Use 'raw' or 'trimmed'.")
 with open(config["fileindex"]) as f:
     INDICES = [line.strip() for line in f]
 print(INDICES)

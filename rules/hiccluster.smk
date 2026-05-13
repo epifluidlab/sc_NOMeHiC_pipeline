@@ -17,8 +17,8 @@ def get_fastq_prefixes(directory):
     return list(prefixes)
 
 # Same dual-mode FASTQ_PREFIXES as the main Snakefile (see notes there).
-if config.get("fastq_prefixes"):
-    FASTQ_PREFIXES = list(config["fastq_prefixes"])
+if config.get("start_from", "raw") == "trimmed":
+    FASTQ_PREFIXES = list(config.get("fastq_prefixes") or [])
 else:
     FASTQ_PREFIXES = get_fastq_prefixes(config["data"])
 
