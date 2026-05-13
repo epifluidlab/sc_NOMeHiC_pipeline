@@ -1,13 +1,21 @@
-"""Compute per-bin methylation level for one cell, one context, one bin size.
+"""Compute per-bin methylation level for one cell, one context.
 
 Reads the per-base BisSNP output
-  07.bistools_snakemake/methylation/{prefix}/{prefix}.cyt.filtered.sort.{context}.6plus2.bed
-and writes a per-bin TSV
-  {outfolder}/{prefix}.{context}.{bin_size}bp_methylation.txt
+  {bed_root}/{prefix}/{prefix}.cyt.filtered.sort.{context}.6plus2.bed
+and writes a per-bin TSV to --outfile.
 
-Each row is one genome-wide bin (chrN:start-end) with the weighted methylation
-level (sum(rate/100 * num_reads) / sum(num_reads)) over CpG/GCH sites that fall
-within it.
+Bin definitions come from one of two sources:
+  --bin_size N  (with --chrom_size_filepath)
+      Fixed-size tiling across autosomes + chrX + chrY.
+  --bin_bed FILE
+      Custom BED of regions. The first three cols are chr/start/end (BED
+      0-based half-open). A fourth col (if present) is used as the bin name
+      (e.g. gene_tss BEDs naming each region by gene); otherwise the bin_id
+      is the genomic range `chr:start+1-end`. Header rows (where col 2 is
+      not an integer) and `#`-comment lines are skipped.
+
+Output schema (TSV with header):
+  bin_id  chr  start  end  methylated_reads  total_reads  methylation_level
 """
 
 import pandas as pd
@@ -26,19 +34,50 @@ def read_chrom_sizes(filepath):
     return chromsize
 
 
-def generate_methyldf(chromsize, bin_size):
+def methyldf_from_binsize(chromsize, bin_size):
     rows = []
     for chrom, size in chromsize[['chr', 'size']].itertuples(index=False):
         starts = np.arange(0, size, bin_size, dtype=np.int64)
         ends = np.minimum(starts + bin_size, size)
         for s, e in zip(starts, ends):
             rows.append((f'{chrom}:{s + 1}-{e}', chrom, int(s + 1), int(e)))
-    methyldf = pd.DataFrame(rows, columns=['bin_id', 'chr', 'start', 'end']).set_index('bin_id')
-    return methyldf
+    return pd.DataFrame(rows, columns=['bin_id', 'chr', 'start', 'end']).set_index('bin_id')
+
+
+def methyldf_from_bin_bed(path):
+    """Parse a BED file into bins. Tolerates `#` comments and header rows."""
+    rows = []
+    seen_ids = {}
+    with open(path) as f:
+        for line in f:
+            line = line.rstrip('\n')
+            if not line or line.startswith('#') or line.startswith('track'):
+                continue
+            parts = line.split('\t')
+            if len(parts) < 3:
+                continue
+            try:
+                start = int(parts[1])
+                end = int(parts[2])
+            except ValueError:
+                # header row (e.g. `chr\tstart\tend\tgene_name`)
+                continue
+            chrom = parts[0]
+            name = parts[3] if len(parts) >= 4 and parts[3] not in ('', '.') else f'{chrom}:{start + 1}-{end}'
+            # Ensure bin_id is unique — append :N suffix on collision
+            key = name
+            n = seen_ids.get(key, 0)
+            if n:
+                name = f'{key}#{n}'
+            seen_ids[key] = n + 1
+            rows.append((name, chrom, start + 1, end))
+    if not rows:
+        raise ValueError(f"No usable bins parsed from {path}")
+    return pd.DataFrame(rows, columns=['bin_id', 'chr', 'start', 'end']).set_index('bin_id')
 
 
 def read_bed(filename):
-    """Read a `.cyt.filtered.sort.{context}.6plus2.bed` once. Filter to autosomes + XY."""
+    """Read the per-base BisSNP 6plus2 BED once. Filter to autosomes + XY."""
     bed = pd.read_csv(
         filename, sep='\t', header=None, skiprows=[0],
         names=['chr', 'start', 'end', 'name', 'ha', 'direction', 'rate', 'num']
@@ -47,14 +86,8 @@ def read_bed(filename):
 
 
 def compute_methylation_levels(methyldf, bed):
-    """Aggregate per bin in `methyldf`. Reads `bed` once, groups its rows by
-    chromosome, then for each bin slices the chrom group by [start, end]
-    coordinate range. O(n_bins + n_sites) per chromosome rather than
-    O(n_bins * n_sites). Adds three columns:
-        methylated_reads — int, weighted by rate (sum(rate/100*num), rounded)
-        total_reads      — int, sum of num
-        methylation_level — float, the precise weighted ratio (NaN if total=0)
-    """
+    """Aggregate per bin in `methyldf`. Adds methylated_reads, total_reads,
+    methylation_level columns. O(n_bins + n_sites) per chromosome."""
     n_bins = len(methyldf)
     methylated_reads = np.zeros(n_bins, dtype=np.int64)
     total_reads = np.zeros(n_bins, dtype=np.int64)
@@ -65,10 +98,7 @@ def compute_methylation_levels(methyldf, bed):
         g = by_chrom.get(chrom)
         if g is None or g.empty:
             continue
-        # Bed rows are CpG/GCH sites at single positions. The BisSNP 6plus2 BED
-        # stores them as half-open intervals where `start` is 0-based; methyldf
-        # bins are 1-based inclusive. A site is "in bin" iff its `start` (BED
-        # 0-based) >= bin.start - 1 AND `end` (BED 0-based exclusive) <= bin.end.
+        # methyldf bins are 1-based inclusive; bed start is 0-based.
         sub = g[(g['start'] >= start - 1) & (g['start'] < end)]
         n = int(sub['num'].sum())
         if n > 0:
@@ -76,50 +106,51 @@ def compute_methylation_levels(methyldf, bed):
             total_reads[idx] = n
             methylated_reads[idx] = int(round(meth_float))
             methylation_level[idx] = meth_float / n
-    methyldf = methyldf.copy()
-    methyldf['methylated_reads'] = methylated_reads
-    methyldf['total_reads'] = total_reads
-    methyldf['methylation_level'] = methylation_level
-    return methyldf
+    out = methyldf.copy()
+    out['methylated_reads'] = methylated_reads
+    out['total_reads'] = total_reads
+    out['methylation_level'] = methylation_level
+    return out
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Compute per-bin methylation level for one cell + context.')
-    parser.add_argument('--chrom_size_filepath', required=True, help='Path to chromosome size file (chr\\tsize)')
+    parser = argparse.ArgumentParser(description='Compute per-bin methylation for one cell + context.')
+    parser.add_argument('--outfile', required=True, help='Output TSV path')
     parser.add_argument('--sample_prefix', required=True, help='Cell prefix (e.g. batch5_scD_1.CGATGT)')
     parser.add_argument('--context', required=True, choices=['GCH', 'HCG'],
-                        help='Cytosine context to aggregate (GCH or HCG)')
-    parser.add_argument('--outfolder', required=True, help='Output folder for the per-bin TSV')
-    parser.add_argument('--bin_size', type=int, default=1000000,
-                        help='Bin size in bp for methylation calculation (default 1Mb)')
+                        help='Cytosine context to aggregate')
     parser.add_argument('--bed_root', default='07.bistools_snakemake/methylation',
-                        help='Root dir for the per-cell BisSNP output')
+                        help='Root dir for the per-cell BisSNP 6plus2 BED')
+    # Bin definition (one required)
+    grp = parser.add_mutually_exclusive_group(required=True)
+    grp.add_argument('--bin_size', type=int, help='Fixed bin size in bp (requires --chrom_size_filepath)')
+    grp.add_argument('--bin_bed', help='Path to a BED file defining custom regions')
+    parser.add_argument('--chrom_size_filepath', help='Required when --bin_size is used')
 
     args = parser.parse_args()
 
-    bed_path = os.path.join(
+    if args.bin_size is not None and not args.chrom_size_filepath:
+        parser.error("--bin_size requires --chrom_size_filepath")
+
+    site_bed_path = os.path.join(
         args.bed_root,
         args.sample_prefix,
         f'{args.sample_prefix}.cyt.filtered.sort.{args.context}.6plus2.bed',
     )
-    outfile_path = os.path.join(
-        args.outfolder,
-        f'{args.sample_prefix}.{args.context}.{args.bin_size}bp_methylation.txt',
-    )
+    if not os.path.exists(site_bed_path):
+        sys.exit(f"ERROR: site bed not found: {site_bed_path}")
 
-    os.makedirs(args.outfolder, exist_ok=True)
-    if os.path.exists(outfile_path):
-        # Snakemake will recompute mtimes; respect already-present output.
-        sys.exit()
+    if args.bin_size is not None:
+        chromsize = read_chrom_sizes(args.chrom_size_filepath)
+        methyldf = methyldf_from_binsize(chromsize, args.bin_size)
+    else:
+        methyldf = methyldf_from_bin_bed(args.bin_bed)
 
-    if not os.path.exists(bed_path):
-        sys.exit(f"ERROR: bed not found: {bed_path}")
+    bed = read_bed(site_bed_path)
+    out = compute_methylation_levels(methyldf, bed)
 
-    chromsize = read_chrom_sizes(args.chrom_size_filepath)
-    methyldf = generate_methyldf(chromsize, args.bin_size)
-    bed = read_bed(bed_path)
-    methyldf = compute_methylation_levels(methyldf, bed)
-    methyldf.to_csv(outfile_path, sep='\t')
+    os.makedirs(os.path.dirname(args.outfile) or '.', exist_ok=True)
+    out.to_csv(args.outfile, sep='\t')
 
 
 if __name__ == '__main__':

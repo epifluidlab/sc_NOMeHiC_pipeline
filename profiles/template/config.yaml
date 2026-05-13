@@ -72,15 +72,23 @@ hg38_250kb_no_dark_regions: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/h
 
 # ─── 3. TUNING ────────────────────────────────────────────────────────────
 
-# Methylation per-bin output: bin sizes (in bp) to compute. The pipeline
-# produces one TSV per (cell, context, bin_size) under 08.methylation_snakemake/,
-# named `{prefix}.{index}.{context}.{bin_size}bp_methylation.txt`, for both
-# GCH and HCG contexts.
+# Methylation per-bin output. Produces one TSV per (cell, context, bin_def)
+# under 08.methylation_snakemake/, named
+#   {prefix}.{index}.{context}.{label}_methylation.txt
+# Both GCH and HCG contexts are always computed. Bin definitions are either
+# fixed-size genome-wide tiling, custom region BEDs, or both:
 methylation_bin_sizes:
   - 1000
   - 50000
   - 100000
   - 250000
+
+# Custom region BEDs. Each key is the label used in the output filename
+# (must start with a letter). Each value is a path to a 3- or 4-column BED
+# (chr/start/end, plus optional name). Header rows are auto-skipped.
+# methylation_region_beds:
+#   gene_tss:  /gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/genome_bins_gene_tss.bed
+#   gene_body: /gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/genome_bins_gene_body.bed
 
 # Adapter trimming parameters (used by demultiplex_fastqc_trim → trim_galore)
 clip_r1: 15

@@ -63,15 +63,27 @@ three_prime_clip_r2: 5
 hg38_5kb_no_dark_regions: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/genome_bins_5kb.bed"
 hg38_250kb_no_dark_regions: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/genome_bins_250kb.bed"
 
-# Methylation per-bin output: bin sizes (in bp) to compute. The pipeline
-# produces one TSV per (cell, context, bin_size) — i.e. 2 contexts × N bin
-# sizes × N cells files under 08.methylation_snakemake/. Defaults: 1kb, 50kb,
-# 100kb, 250kb.
+# Methylation per-bin output. Produces one TSV per (cell, context, bin def)
+# under 08.methylation_snakemake/. Two kinds of bin definitions can be mixed
+# and matched — both produce files with the same schema, named
+#   {prefix}.{index}.{context}.{label}_methylation.txt
+#
+#   1. methylation_bin_sizes — fixed-size genome-wide tiling. `label` is
+#      `{N}bp` (e.g. `100000bp`).
 methylation_bin_sizes:
   - 1000
   - 50000
   - 100000
   - 250000
+
+#   2. methylation_region_beds — custom regions from BED files. `label` is
+#      the dict key (must start with a letter; can contain letters/digits/
+#      underscore/hyphen). The BED file's first three cols are chr/start/end;
+#      a fourth col (if present) is used as the bin name in the output. Header
+#      rows where col 2 isn't an integer are auto-skipped.
+# methylation_region_beds:
+#   gene_tss:  /gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/genome_bins_gene_tss.bed
+#   gene_body: /gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/genome_bins_gene_body.bed
 
 # qc analysis thresholds
 fragnum_threshold: 80000

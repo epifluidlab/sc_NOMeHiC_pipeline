@@ -76,9 +76,14 @@ else:
 include: "rules/hiccluster.smk"
 #include: "rules/GCHnorm.smk"
 
-# Methylation bin sizes (one per-bin TSV produced per cell × context × bin_size)
+# Methylation per-bin output configuration. The pipeline produces one TSV
+# per cell × context × bin_definition. Bin definitions can be either:
+#   - fixed bin sizes in bp (config['methylation_bin_sizes'])
+#   - custom BED files of regions (config['methylation_region_beds'] is a
+#     mapping label → bed path; the label becomes the filename suffix)
 METHYLATION_CONTEXTS = ["GCH", "HCG"]
 METHYLATION_BIN_SIZES = list(config.get("methylation_bin_sizes", [1000, 50000, 100000, 250000]))
+METHYLATION_REGION_LABELS = list((config.get("methylation_region_beds") or {}).keys())
 
 # Build rule_all target list. When SKIP_DEMUX_TRIM is set, drop the
 # 02.fastqc outputs (which are produced by demultiplex_fastqc_trim).
@@ -97,6 +102,10 @@ _rule_all_targets += expand("07.bistools_snakemake/methylation/{prefix}.{index}/
 _rule_all_targets += expand("08.methylation_snakemake/{prefix}.{index}.{context}.{bin_size}bp_methylation.txt",
                             prefix=FASTQ_PREFIXES, index=INDICES,
                             context=METHYLATION_CONTEXTS, bin_size=METHYLATION_BIN_SIZES)
+if METHYLATION_REGION_LABELS:
+    _rule_all_targets += expand("08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt",
+                                prefix=FASTQ_PREFIXES, index=INDICES,
+                                context=METHYLATION_CONTEXTS, label=METHYLATION_REGION_LABELS)
 
 rule all:
     input: _rule_all_targets
@@ -363,9 +372,9 @@ rule rerun_bistools_all:
                prefix=FASTQ_PREFIXES, index=INDICES)
 
 rule methylation:
-    # One bed → one methylation TSV at one bin size, for one context. The
-    # rule fans out via the {context} and {bin_size} wildcards: snakemake
-    # invokes it for each (context, bin_size) target listed in rule all.
+    # Fixed-bin-size methylation: one TSV per cell × context × bin_size.
+    # The {bin_size} wildcard is constrained to digits so this rule doesn't
+    # collide with rule methylation_region (which uses a non-digit {label}).
     input:
         bed = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.{context}.6plus2.bed"
     output:
@@ -385,10 +394,42 @@ rule methylation:
     shell:
         """
         python {params.scripts}/calcmethylation.py \
-            --chrom_size_filepath {params.reference}.chrom.sizes \
+            --outfile {output.methylation} \
             --sample_prefix {params.sample} \
             --context {wildcards.context} \
             --bin_size {wildcards.bin_size} \
-            --outfolder 08.methylation_snakemake \
+            --chrom_size_filepath {params.reference}.chrom.sizes \
+            2> {log}
+        """
+
+
+rule methylation_region:
+    # Custom-region methylation: one TSV per cell × context × region_label,
+    # where the regions come from a user-provided BED. The label wildcard is
+    # constrained to start with a non-digit so this rule doesn't collide
+    # with rule methylation (digit-only {bin_size}).
+    input:
+        bed = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.{context}.6plus2.bed"
+    output:
+        methylation = "08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt"
+    wildcard_constraints:
+        context = "GCH|HCG",
+        label = r"[A-Za-z][A-Za-z0-9_\-]*"
+    threads: 1
+    resources:
+        mem_mb=8000
+    params:
+        sample = "{prefix}.{index}",
+        scripts = config["scripts"],
+        region_bed = lambda wildcards: (config.get("methylation_region_beds") or {})[wildcards.label]
+    log:
+        "logs/08.methylation_snakemake/methylation.{prefix}.{index}.{context}.{label}.log"
+    shell:
+        """
+        python {params.scripts}/calcmethylation.py \
+            --outfile {output.methylation} \
+            --sample_prefix {params.sample} \
+            --context {wildcards.context} \
+            --bin_bed {params.region_bed} \
             2> {log}
         """
