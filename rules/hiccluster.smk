@@ -22,6 +22,7 @@ with open(config["fileindex"]) as f:
     INDICES = [line.strip() for line in f]
 
 SAMPLES = [f"{prefix}.{index}" for prefix in FASTQ_PREFIXES for index in INDICES]
+print(f"hiccluster.smk parse: cwd={os.getcwd()} data={config['data']} fileindex={config['fileindex']} FASTQ_PREFIXES={FASTQ_PREFIXES} INDICES={INDICES} SAMPLES={SAMPLES}")
 
 # CHROM = [str(c) for c in range(1, 23)] + ['EBV', 'M', 'Un', 'X', 'Y']
 CHROM = [str(c) for c in range(1, 23)]

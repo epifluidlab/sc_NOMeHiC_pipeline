@@ -243,11 +243,13 @@ rule bisqc:
     shell:
         # BisSNP-1.0.1 / GATK 3.8 require Java 8 for reflective walker discovery
         # (QuickMethylationLevel etc are not findable under Java 17).
+        # BISTOOLS env var must be EXPORTED so methylation_bias_plot.pl (which
+        # does `my $bistools_path = \`echo $BISTOOLS\`;`) can read it.
         """
-        picard={params.picard}
+        export picard={params.picard}
         module load java/jdk1.8.0_191
         module load libpng
-        BISTOOLS={params.bistools}
+        export BISTOOLS={params.bistools}
 
         perl {params.bistools}/Bis-QC/Bis-QC.pl \
         --QC_mode 1 \
