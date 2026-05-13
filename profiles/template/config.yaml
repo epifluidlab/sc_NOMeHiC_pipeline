@@ -1,32 +1,39 @@
-# Per-project pipeline config — copy this file into your project directory and
-# edit the values below. Anything you DON'T set here is inherited from the
-# repo's configs/config.yaml (reference paths, software paths, qc thresholds,
-# etc), so this file only needs the project-specific bits.
+# Per-project pipeline config — self-contained.
+#
+# Copy this file into your project directory, edit the values, and pass it
+# as the ONLY --configfile to snakemake. No need to also pass the repo's
+# configs/config.yaml — every field the pipeline needs is set here.
+#
+# Everything is grouped:
+#   1. Project-specific (edit per run): workdir, start_from, inputs
+#   2. Shared paths      (rarely change): reference, software
+#   3. Tuning            (rarely change): trimming params, qc thresholds
+# ──────────────────────────────────────────────────────────────────────────
+
+# ─── 1. PROJECT-SPECIFIC ──────────────────────────────────────────────────
 
 # Absolute path to this project's working directory. All pipeline outputs land
-# here as subdirectories (01.demul_fastq_snakemake/, 04.alignment_snakemake/,
-# 07.bistools_snakemake/, 08.methylation_snakemake/, etc).
+# here (01.demul_fastq_snakemake/, 04.alignment_snakemake/, 07.bistools_snakemake/,
+# 08.methylation_snakemake/, etc).
 workdir: "/projects/b1198/epifluidlab/yoshii/runs/REPLACE_ME"
 
 # Pipeline starting mode:
 #   "raw"     — start from raw paired fastqs in `data/` (runs demultiplex + fastqc + trim)
-#   "trimmed" — start from already-trimmed fastqs in 03.trimmed_fastq_snakemake/
-#               (skips demux + fastqc + trim; requires `fastq_prefixes` below)
+#   "trimmed" — start from already-trimmed fastqs in `trimmed_data/`
+#               (skips demux + fastqc + trim)
 start_from: "raw"
 
-# Raw fastq directory (relative to workdir). Used only when start_from == "raw".
+# Raw fastq directory (relative to workdir, or absolute). Used when start_from == "raw".
 # Files must be named {prefix}_R1_001.fastq.gz and {prefix}_R2_001.fastq.gz.
 data: "00.raw_data/"
 
-# Single-cell index file (relative to workdir). One index per line.
+# Single-cell index file (relative to workdir, or absolute). One index per line.
 fileindex: "00.raw_data/index.txt"
 
 # Trimmed-fastq directory. Used as the output dir for demultiplex_fastqc_trim
-# (in raw mode), as the input dir for mapping (both modes), and as the scan
-# dir for auto-discovery (in trimmed mode when no list is configured).
-# Override when your already-trimmed fastqs live elsewhere, e.g.:
-#   trimmed_data: "/scratch/jmj7858/scnomehic/cellline_fastq"
-# trimmed_data: "03.trimmed_fastq_snakemake"
+# (raw mode), as the input dir for `mapping` (both modes), and as the scan
+# dir for auto-discovery (trimmed mode, no list configured).
+trimmed_data: "03.trimmed_fastq_snakemake"
 
 # Which cell prefixes to process under start_from == "trimmed". Pick ONE
 # (in order of precedence; ignored when start_from == "raw"):
@@ -37,32 +44,44 @@ fileindex: "00.raw_data/index.txt"
 #   - batch5_scD_2
 #
 #   2. fastq_prefixes_file — path to a text file, one prefix per line. Best
-#      when you have hundreds of cells (avoid bloating the yaml).
+#      when you have hundreds of cells.
 # fastq_prefixes_file: "prefixes.txt"
 #
 #   3. (default) auto-discover — leave both above unset and the pipeline
-#      will scan 03.trimmed_fastq_snakemake/ for every
-#      {prefix}.{index}.R1_val_1.fq.gz file. Best when you've staged the
-#      trimmed inputs but don't want to maintain a separate prefix list.
-#
-# Trimmed inputs in any case must live at
-#   03.trimmed_fastq_snakemake/{prefix}.{index}.R1_val_1.fq.gz
-# (and R2_val_2.fq.gz) for each index listed in fileindex.
+#      scans `trimmed_data` for every {prefix}.{index}.R1_val_1.fq.gz file.
 
-# ─────────────────────────────────────────────────────────────────────────
-# Optional per-project overrides — uncomment to override the repo defaults.
-# ─────────────────────────────────────────────────────────────────────────
+# ─── 2. SHARED PATHS ──────────────────────────────────────────────────────
 
-# Adapter trimming parameters
-# clip_r1: 15
-# clip_r2: 15
-# three_prime_clip_r1: 5
-# three_prime_clip_r2: 5
+# Reference genome (path without extension; .fa, .fa.fai, .chrom.sizes, etc are
+# derived from this).
+reference: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set"
+variants: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf"
+restriction_sites: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa_DpnII.txt"
 
-# QC analysis thresholds (used by rules/scnomehic_analysis.smk)
-# fragnum_threshold: 80000
-# noncpg_threshold: 5
-# GCH_threshold: 1000000
-# HCG_threshold: 150000
-# transrate_threshold: 0.7
-# cis1kbnum_threshold: 2000
+# Software paths
+picard: "/gpfs/projects/b1198/epifluidlab/yoshii/software/picard/picard.jar"
+bisulfitehic: "/gpfs/projects/b1198/epifluidlab/yoshii/software/bisulfiteHic"
+bissnp_jar: "/gpfs/projects/b1198/epifluidlab/yoshii/software/Bis-tools/Bis-SNP/Bis-SNP.latest.jar"
+bistools: "/gpfs/projects/b1198/epifluidlab/yoshii/software/Bis-tools"
+scripts: "/gpfs/projects/b1198/epifluidlab/yoshii/software/sc_NOMeHiC_pipeline/scripts"
+
+# GCHnorm genome intervals (used by rules/GCHnorm.smk; only needed if you
+# enable that workflow)
+hg38_5kb_no_dark_regions: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/genome_bins_5kb.bed"
+hg38_250kb_no_dark_regions: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/genome_bins_250kb.bed"
+
+# ─── 3. TUNING ────────────────────────────────────────────────────────────
+
+# Adapter trimming parameters (used by demultiplex_fastqc_trim → trim_galore)
+clip_r1: 15
+clip_r2: 15
+three_prime_clip_r1: 5
+three_prime_clip_r2: 5
+
+# QC analysis thresholds (used by rules/scnomehic_analysis.smk rule qc)
+fragnum_threshold: 80000
+noncpg_threshold: 5
+GCH_threshold: 1000000
+HCG_threshold: 150000
+transrate_threshold: 0.7
+cis1kbnum_threshold: 2000

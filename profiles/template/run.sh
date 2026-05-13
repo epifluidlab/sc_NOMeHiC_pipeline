@@ -38,12 +38,10 @@ export PATH="${PATH}:/projects/b1198/epifluidlab/yoshii/software/conda/envs/hic_
 # via the wrappers' hardcoded path, so this module load is fine for both.
 module load java/jdk-17.0.2+8
 
-# Snakemake invocation. `--configfile ${PIPELINE}/configs/config.yaml` first
-# loads the repo defaults; `--configfile config.yaml` then overlays this
-# project's values.
+# Snakemake invocation. The project's config.yaml is self-contained (every
+# field the pipeline needs is set there), so only one --configfile is needed.
 snakemake \
   -s ${PIPELINE}/Snakefile \
-  --configfile ${PIPELINE}/configs/config.yaml \
   --configfile config.yaml \
   -j ${SLURM_CPUS_PER_TASK:-16} \
   -p --keep-going
