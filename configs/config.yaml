@@ -34,9 +34,16 @@ start_from: "raw"
 data: "00.raw_data/"
 fileindex: "00.raw_data/index.txt"
 
-# Required when start_from == "trimmed"; ignored otherwise.
+# Which cell prefixes to process under start_from == "trimmed", in order of
+# precedence (set ONE; ignored when start_from == "raw"):
+#   1. fastq_prefixes      — inline list (small datasets, <= ~10 cells)
+#   2. fastq_prefixes_file — path to a one-per-line text file (large datasets)
+#   3. (default) auto-discover from 03.trimmed_fastq_snakemake/ — every
+#      {prefix}.{index}.R1_val_1.fq.gz file present, where {index} matches
+#      one of the values in `fileindex`.
 # fastq_prefixes:
 #   - batch5_scD_1
+# fastq_prefixes_file: "prefixes.txt"
 
 # adapter trimming parameters
 clip_r1: 15

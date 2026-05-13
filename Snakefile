@@ -17,21 +17,57 @@ def get_fastq_prefixes(directory):
             prefixes.add(prefix)
     return list(prefixes)
 
+def discover_prefixes_from_trimmed(trimmed_dir, indices):
+    """Scan `trimmed_dir` for files like {prefix}.{index}.R1_val_1.fq.gz and
+    return the sorted unique prefixes. `index` is taken to be the suffix that
+    matches one of `indices` (so the prefix can itself contain dots)."""
+    if not os.path.isdir(trimmed_dir):
+        return []
+    indices_set = set(indices)
+    prefixes = set()
+    for fn in os.listdir(trimmed_dir):
+        if not fn.endswith(".R1_val_1.fq.gz"):
+            continue
+        stem = fn[:-len(".R1_val_1.fq.gz")]
+        if "." not in stem:
+            continue
+        prefix, _, idx = stem.rpartition(".")
+        if idx in indices_set:
+            prefixes.add(prefix)
+    return sorted(prefixes)
+
 # Pipeline starting mode — see configs/config.yaml for the description.
+# INDICES is loaded first because `start_from: trimmed` auto-discovery needs it.
+with open(config["fileindex"]) as f:
+    INDICES = [line.strip() for line in f if line.strip()]
+print(INDICES)
+
 START_FROM = config.get("start_from", "raw")
 if START_FROM == "raw":
     FASTQ_PREFIXES = get_fastq_prefixes(config["data"])
     SKIP_DEMUX_TRIM = False
 elif START_FROM == "trimmed":
-    FASTQ_PREFIXES = list(config.get("fastq_prefixes") or [])
+    # Three ways to specify which cell prefixes to process, in order of
+    # precedence. Pick whichever fits your dataset size:
+    #   1. config['fastq_prefixes']      — inline list (small datasets)
+    #   2. config['fastq_prefixes_file'] — path to a one-per-line text file
+    #   3. (default) auto-discover from 03.trimmed_fastq_snakemake/
+    if config.get("fastq_prefixes"):
+        FASTQ_PREFIXES = list(config["fastq_prefixes"])
+    elif config.get("fastq_prefixes_file"):
+        with open(config["fastq_prefixes_file"]) as f:
+            FASTQ_PREFIXES = [line.strip() for line in f if line.strip()]
+    else:
+        FASTQ_PREFIXES = discover_prefixes_from_trimmed("03.trimmed_fastq_snakemake", INDICES)
     if not FASTQ_PREFIXES:
-        raise ValueError("start_from='trimmed' requires `fastq_prefixes` to be set in config (a list of cell prefixes).")
+        raise ValueError(
+            "start_from='trimmed' but no prefixes found. Set config['fastq_prefixes'] "
+            "(list), config['fastq_prefixes_file'] (path to one-per-line file), "
+            "or place {prefix}.{index}.R1_val_1.fq.gz files under 03.trimmed_fastq_snakemake/."
+        )
     SKIP_DEMUX_TRIM = True
 else:
     raise ValueError(f"Unknown start_from mode: {START_FROM!r}. Use 'raw' or 'trimmed'.")
-with open(config["fileindex"]) as f:
-    INDICES = [line.strip() for line in f]
-print(INDICES)
 include: "rules/hiccluster.smk"
 #include: "rules/GCHnorm.smk"
 

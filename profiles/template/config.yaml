@@ -21,13 +21,26 @@ data: "00.raw_data/"
 # Single-cell index file (relative to workdir). One index per line.
 fileindex: "00.raw_data/index.txt"
 
-# Required when start_from == "trimmed"; ignored otherwise. List each cell
-# prefix; the pipeline expects
-#   03.trimmed_fastq_snakemake/{prefix}.{index}.R1_val_1.fq.gz
-# (and R2_val_2.fq.gz) for each index in fileindex.
+# Which cell prefixes to process under start_from == "trimmed". Pick ONE
+# (in order of precedence; ignored when start_from == "raw"):
+#
+#   1. fastq_prefixes — inline list. Best when you have only a few cells.
 # fastq_prefixes:
 #   - batch5_scD_1
 #   - batch5_scD_2
+#
+#   2. fastq_prefixes_file — path to a text file, one prefix per line. Best
+#      when you have hundreds of cells (avoid bloating the yaml).
+# fastq_prefixes_file: "prefixes.txt"
+#
+#   3. (default) auto-discover — leave both above unset and the pipeline
+#      will scan 03.trimmed_fastq_snakemake/ for every
+#      {prefix}.{index}.R1_val_1.fq.gz file. Best when you've staged the
+#      trimmed inputs but don't want to maintain a separate prefix list.
+#
+# Trimmed inputs in any case must live at
+#   03.trimmed_fastq_snakemake/{prefix}.{index}.R1_val_1.fq.gz
+# (and R2_val_2.fq.gz) for each index listed in fileindex.
 
 # ─────────────────────────────────────────────────────────────────────────
 # Optional per-project overrides — uncomment to override the repo defaults.

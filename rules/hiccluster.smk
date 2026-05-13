@@ -16,14 +16,38 @@ def get_fastq_prefixes(directory):
             prefixes.add(prefix)
     return list(prefixes)
 
-# Same dual-mode FASTQ_PREFIXES as the main Snakefile (see notes there).
-if config.get("start_from", "raw") == "trimmed":
-    FASTQ_PREFIXES = list(config.get("fastq_prefixes") or [])
-else:
-    FASTQ_PREFIXES = get_fastq_prefixes(config["data"])
+# Same FASTQ_PREFIXES logic as the main Snakefile (see notes there). Three
+# trimmed-mode sources in order of precedence: inline list, path-to-file,
+# auto-discover from 03.trimmed_fastq_snakemake/.
+def _discover_prefixes_from_trimmed(trimmed_dir, indices):
+    if not os.path.isdir(trimmed_dir):
+        return []
+    indices_set = set(indices)
+    prefixes = set()
+    for fn in os.listdir(trimmed_dir):
+        if not fn.endswith(".R1_val_1.fq.gz"):
+            continue
+        stem = fn[:-len(".R1_val_1.fq.gz")]
+        if "." not in stem:
+            continue
+        prefix, _, idx = stem.rpartition(".")
+        if idx in indices_set:
+            prefixes.add(prefix)
+    return sorted(prefixes)
 
 with open(config["fileindex"]) as f:
-    INDICES = [line.strip() for line in f]
+    INDICES = [line.strip() for line in f if line.strip()]
+
+if config.get("start_from", "raw") == "trimmed":
+    if config.get("fastq_prefixes"):
+        FASTQ_PREFIXES = list(config["fastq_prefixes"])
+    elif config.get("fastq_prefixes_file"):
+        with open(config["fastq_prefixes_file"]) as f:
+            FASTQ_PREFIXES = [line.strip() for line in f if line.strip()]
+    else:
+        FASTQ_PREFIXES = _discover_prefixes_from_trimmed("03.trimmed_fastq_snakemake", INDICES)
+else:
+    FASTQ_PREFIXES = get_fastq_prefixes(config["data"])
 
 SAMPLES = [f"{prefix}.{index}" for prefix in FASTQ_PREFIXES for index in INDICES]
 
