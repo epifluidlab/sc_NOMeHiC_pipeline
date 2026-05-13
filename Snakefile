@@ -46,8 +46,8 @@ rule all: # does this need only the end output or every single one??
         ## merge-chromosome-data output (perhaps for later step?)
         "06.hiccluster_snakemake/hicluster_250kb_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5",
 
-        # 07.bistools output
-        expand("07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.BisSNP-0.90.WCG.coverage.bedgraph", prefix = FASTQ_PREFIXES, index = INDICES),
+        # 07.bistools output — per-base HCG BED, the input to rule methylation
+        expand("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.6plus2.bed", prefix = FASTQ_PREFIXES, index = INDICES),
 
         # 08.methylation output
         expand("08.methylation_snakemake/{prefix}.{index}_methylation.txt", prefix = FASTQ_PREFIXES, index = INDICES),
@@ -266,95 +266,55 @@ rule bistools:
     input:
         calmd_bam = "04.alignment_snakemake/{prefix}.{index}.calmd.bam"
     output:
-        # methylation output
-        meth_GCH_bissnp = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.BisSNP-0.90.GCH.coverage.bedgraph",
-        meth_HCG_bissnp = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.BisSNP-0.90.HCG.coverage.bedgraph",
-        meth_GCH_6plus2 = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.6plus2.bed",
-        meth_GCH_bedgraph = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.bedgraph",
-        meth_GCH_bw = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.bw",
-        meth_HCG_6plus2 = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.HCG.6plus2.bed",
-        meth_HCG_bedgraph = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.HCG.bedgraph",
-        meth_HCG_bw = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.HCG.bw",
-        meth_vcf = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.vcf",
-        meth_cpgSummary = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.vcf.cpgSummary.txt",
-        meth_idx = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.vcf.idx",
-        meth_raw_vcf = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.raw.sort.vcf",
-        meth_raw_idx = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.raw.sort.vcf.idx",
-        meth_raw_MethySummarizeList = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.raw.vcf.MethySummarizeList.txt",
-        meth_snp_vcf = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.snp.filtered.sort.vcf",
-        meth_snp_cpgSummary = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.snp.filtered.sort.vcf.cpgSummary.txt",
-        meth_snp_idx = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.snp.filtered.sort.vcf.idx",
-        meth_snp_raw_vcf = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.snp.raw.sort.vcf",
-        meth_snp_raw_idx = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.snp.raw.sort.vcf.idx",
-
-        # WCG output
-        WCG_coverage = "07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.BisSNP-0.90.WCG.coverage.bedgraph",
-        WCG_filtered_vcf = "07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.vcf",
-        WCG_filtered_cpgSummary = "07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.vcf.cpgSummary.txt",
-        WCG_filtered_idx = "07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.vcf.idx",
-        WCG_filtered_6plus2 = "07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.WCG.6plus2.bed",
-        WCG_filtered_bedgraph = "07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.WCG.bedgraph",
-        WCG_filtered_bw = "07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.WCG.bw",
-        WCG_raw = "07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.raw.sort.vcf",
-        WCG_raw_idx = "07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.raw.sort.vcf.idx",
-        WCG_raw_MethySummarizeList = "07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.raw.vcf.MethySummarizeList.txt",
-        WCG_snp = "07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.snp.filtered.sort.vcf",
-        WCG_snp_cpgSummary = "07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.snp.filtered.sort.vcf.cpgSummary.txt",
-        WCG_snp_idx = "07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.snp.filtered.sort.vcf.idx",
-        WCG_snp_raw = "07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.snp.raw.sort.vcf",
-        WCG_snp_raw_idx = "07.bistools_snakemake/WCG/{prefix}.{index}/{prefix}.{index}.calmd.snp.raw.sort.vcf.idx"
-    threads: 16
+        # raw VCFs + per-read methylation tables produced directly by BisulfiteGenotyper
+        cyt_vcf       = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.vcf",
+        snp_vcf       = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.snp.vcf",
+        gch_per_read  = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.GCH.txt",
+        hcg_per_read  = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.HCG.txt",
+        # post-processed filtered + sorted VCF and per-base BEDs (consumed downstream)
+        cyt_filt_vcf       = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.vcf",
+        cyt_filt_summary   = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.vcf.cpgSummary.txt",
+        gch_6plus2         = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.GCH.6plus2.bed",
+        hcg_6plus2         = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.6plus2.bed",
+        gch_strand_6plus2  = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.GCH.strand.6plus2.bed",
+        hcg_strand_6plus2  = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.strand.6plus2.bed"
+    threads: 1
     resources:
-        mem_mb=64000
+        mem_mb=30000
     params:
-        reference = config["reference"],
-        vcf = config["variants"],
-        indir = "04.alignment_snakemake/{prefix}.{index}",
-        qc_outdir = "07.bistools_snakemake/qc/{prefix}.{index}/",
-        methylation_outdir = "07.bistools_snakemake/methylation/{prefix}.{index}/",
-        WCG_outdir = "07.bistools_snakemake/WCG/{prefix}.{index}/",
-        picard = config["picard"],
-        bistools = config["bistools"]
+        reference  = config["reference"],
+        vcf        = config["variants"],
+        bistools   = config["bistools"],
+        bissnp_jar = config["bissnp_jar"],
+        outdir     = "07.bistools_snakemake/methylation/{prefix}.{index}",
+        sample     = "{prefix}.{index}"
     log:
-        "logs/07.bistools_snakemake/bistools.{prefix}.{index}"
+        "logs/07.bistools_snakemake/bistools.{prefix}.{index}.log"
     shell:
+        # bissnp_nomehic_usage.pl writes outputs in cwd, named from --prefix.
+        # cd into the output dir, then call with the BAM/ref/vcf as absolute paths.
         """
-        picard={params.picard}
-        module load java/jdk-17.0.2+8
-        module load libpng
-        BISTOOLS={params.bistools}
-
-        perl {params.bistools}/Bis-SNP/bissnp_easy_usage.pl -use_bad_mates \
-        --bistools_path {params.bistools} --nomeseq --lowCov --mmq 30 \
-        --nt 1 --mem 10 \
-        {params.bistools}/Bis-SNP/BisSNP-0.90.jar \
-        {input.calmd_bam} {params.reference}.fa {params.vcf} > {log} 2>&1
-        mv {params.indir}*vcf* {params.methylation_outdir}
-        mv {params.indir}*.bedgraph {params.methylation_outdir}
-        mv {params.indir}*.bed {params.methylation_outdir}
-        mv {params.indir}*.bw {params.methylation_outdir}
-
-        perl {params.bistools}/Bis-SNP/bissnp_easy_usage.pl --use_bad_mates \
-        --bistools_path {params.bistools} --cytosines WCG,2 --outMode 2 --allC --mmq 30 \
-        --nt 12 --mem 60 \
-        {params.bistools}/Bis-SNP/BisSNP-0.90.jar \
-        {input.calmd_bam} {params.reference}.fa {params.vcf} >> {log} 2>&1
-        mv {params.indir}*vcf* {params.WCG_outdir}
-        mv {params.indir}*.bedgraph {params.WCG_outdir}
-        mv {params.indir}*.bed {params.WCG_outdir}
-        mv {params.indir}*.bw {params.WCG_outdir}
+        mkdir -p {params.outdir}
+        BAM_ABS=$(readlink -f {input.calmd_bam})
+        LOG_ABS=$(readlink -f {log} 2>/dev/null || echo "$PWD/{log}")
+        cd {params.outdir}
+        perl {params.bistools}/Bis-SNP/bissnp_nomehic_usage.pl \
+            --prefix {params.sample} --mem 20 \
+            {params.bissnp_jar} \
+            ${{BAM_ABS}} {params.reference}.fa {params.vcf} \
+            > ${{LOG_ABS}} 2>&1
         """
 
 rule rerun_bistools_all:
     input:
-        expand("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.6plus2.bed",
+        expand("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.GCH.6plus2.bed",
                prefix=FASTQ_PREFIXES, index=INDICES) +
-        expand("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.HCG.6plus2.bed",
+        expand("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.6plus2.bed",
                prefix=FASTQ_PREFIXES, index=INDICES)
 
 rule methylation:
     input:
-        meth_HCG_6plus2 = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.HCG.6plus2.bed"
+        meth_HCG_6plus2 = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.6plus2.bed"
     output:
         methylation = "08.methylation_snakemake/{prefix}.{index}_methylation.txt"
     threads: 8

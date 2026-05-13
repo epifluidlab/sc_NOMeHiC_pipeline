@@ -25,7 +25,7 @@ def compute_methylation_levels(methyldf, prefix):
         chr = methyldf.iloc[i]['chr']
         start = methyldf.iloc[i]['start']
         end = methyldf.iloc[i]['end']
-        filename = f'07.bistools_snakemake/methylation/{prefix}/{prefix}.calmd.cytosine.filtered.sort.HCG.6plus2.bed'
+        filename = f'07.bistools_snakemake/methylation/{prefix}/{prefix}.cyt.filtered.sort.HCG.6plus2.bed'
         bed = pd.read_csv(filename, sep='\t', header=None, skiprows=[0], names=['chr', 'start', 'end', 'name', 'ha', 'direction', 'rate', 'num'])
         bed = bed[bed['chr'].isin([f'chr{i}' for i in range(1, 23)] + ['chrX', 'chrY'])]
         subbed = bed[(bed['chr'] == chr) & (bed['start'] >= start) & (bed['end'] <= end)]

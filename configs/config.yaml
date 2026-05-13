@@ -9,7 +9,9 @@ restriction_sites: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/GCA_0
 # software
 picard: "/gpfs/projects/b1198/epifluidlab/yoshii/software/picard/picard.jar"
 bisulfitehic: "/gpfs/projects/b1198/epifluidlab/yoshii/software/bisulfiteHic"
+bissnp_jar: "/gpfs/projects/b1198/epifluidlab/yoshii/software/Bis-tools/Bis-SNP/Bis-SNP.latest.jar"
 bistools: "/gpfs/projects/b1198/epifluidlab/yoshii/software/Bis-tools"
+# NOTE: bistools/Bis-SNP/bissnp_nomehic_usage.pl is the scNOMe-HiC wrapper used by rule bistools.
 scripts: "/gpfs/projects/b1198/epifluidlab/yoshii/software/sc_NOMeHiC_pipeline/scripts"
 
 # fastq input directory and single cell index
