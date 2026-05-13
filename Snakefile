@@ -241,9 +241,11 @@ rule bisqc:
     log:
         "logs/07.bisqc_snakemake/bisqc.{prefix}.{index}"
     shell:
+        # BisSNP-1.0.1 / GATK 3.8 require Java 8 for reflective walker discovery
+        # (QuickMethylationLevel etc are not findable under Java 17).
         """
         picard={params.picard}
-        module load java/jdk-17.0.2+8
+        module load java/jdk1.8.0_191
         module load libpng
         BISTOOLS={params.bistools}
 

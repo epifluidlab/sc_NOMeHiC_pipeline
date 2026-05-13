@@ -55,7 +55,8 @@ rule scbam2hic:
     threads: 5
     params:
         reference = config["reference"],
-        restriction_sites = config["restriction_sites"]
+        restriction_sites = config["restriction_sites"],
+        bisulfitehic = config["bisulfitehic"]
     log:
         "logs/06.hiccluster_snakemake/scbam2hic/scbam2hic.{prefix}.{index}.log"
     shell:
@@ -63,7 +64,7 @@ rule scbam2hic:
         # should be fine without bisulfitehic27 environment, same dependencies
         """
         samtools view -bh -q 30 -f 1 -F 1804 {input.calmd_bam} > {output.good_reads} && \
-        python software/bisulfitehic/src/python/sam2juicer_new.py \
+        python {params.bisulfitehic}/src/python/sam2juicer_new.py \
         -s {output.good_reads} -f {params.restriction_sites} > {output.hic} \
         2> {log}
         """
