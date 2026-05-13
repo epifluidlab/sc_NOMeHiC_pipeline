@@ -85,6 +85,29 @@ METHYLATION_CONTEXTS = ["GCH", "HCG"]
 METHYLATION_BIN_SIZES = list(config.get("methylation_bin_sizes", [1000, 50000, 100000, 250000]))
 METHYLATION_REGION_LABELS = list((config.get("methylation_region_beds") or {}).keys())
 
+def _bin_size_to_label(n):
+    """Render a bp count as a human-readable filename label: 1Mb / 5kb / 500bp.
+    Only uses Mb/kb when n divides the unit evenly; otherwise falls back to bp
+    so the round-trip parse is unambiguous."""
+    n = int(n)
+    if n >= 1_000_000 and n % 1_000_000 == 0:
+        return f"{n // 1_000_000}Mb"
+    if n >= 1000 and n % 1000 == 0:
+        return f"{n // 1000}kb"
+    return f"{n}bp"
+
+def _bin_label_to_size(label):
+    """Inverse of _bin_size_to_label: parse a 1Mb / 5kb / 500bp label back to bp."""
+    if label.endswith("Mb"):
+        return int(label[:-2]) * 1_000_000
+    if label.endswith("kb"):
+        return int(label[:-2]) * 1000
+    if label.endswith("bp"):
+        return int(label[:-2])
+    raise ValueError(f"Unknown bin-size label: {label!r} (expected NNbp/NNkb/NNMb)")
+
+METHYLATION_BIN_LABELS = [_bin_size_to_label(n) for n in METHYLATION_BIN_SIZES]
+
 # Build rule_all target list. When SKIP_DEMUX_TRIM is set, drop the
 # 02.fastqc outputs (which are produced by demultiplex_fastqc_trim).
 _rule_all_targets = []
@@ -99,9 +122,9 @@ _rule_all_targets += expand("07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.
 _rule_all_targets += ["06.hiccluster_snakemake/hicluster_250kb_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5"]
 _rule_all_targets += expand("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.{context}.6plus2.bed",
                             prefix=FASTQ_PREFIXES, index=INDICES, context=METHYLATION_CONTEXTS)
-_rule_all_targets += expand("08.methylation_snakemake/{prefix}.{index}.{context}.{bin_size}bp_methylation.txt",
+_rule_all_targets += expand("08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt",
                             prefix=FASTQ_PREFIXES, index=INDICES,
-                            context=METHYLATION_CONTEXTS, bin_size=METHYLATION_BIN_SIZES)
+                            context=METHYLATION_CONTEXTS, label=METHYLATION_BIN_LABELS)
 if METHYLATION_REGION_LABELS:
     _rule_all_targets += expand("08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt",
                                 prefix=FASTQ_PREFIXES, index=INDICES,
@@ -373,31 +396,33 @@ rule rerun_bistools_all:
 
 rule methylation:
     # Fixed-bin-size methylation: one TSV per cell × context × bin_size.
-    # The {bin_size} wildcard is constrained to digits so this rule doesn't
-    # collide with rule methylation_region (which uses a non-digit {label}).
+    # The {label} wildcard is constrained to NNbp/NNkb/NNMb so this rule
+    # doesn't collide with rule methylation_region (which uses a label that
+    # starts with a letter).
     input:
         bed = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.{context}.6plus2.bed"
     output:
-        methylation = "08.methylation_snakemake/{prefix}.{index}.{context}.{bin_size}bp_methylation.txt"
+        methylation = "08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt"
     wildcard_constraints:
         context = "GCH|HCG",
-        bin_size = r"\d+"
+        label = r"\d+(bp|kb|Mb)"
     threads: 1
     resources:
         mem_mb=8000
     params:
         sample = "{prefix}.{index}",
         scripts = config["scripts"],
-        reference = config["reference"]
+        reference = config["reference"],
+        bin_size_bp = lambda wildcards: _bin_label_to_size(wildcards.label)
     log:
-        "logs/08.methylation_snakemake/methylation.{prefix}.{index}.{context}.{bin_size}bp.log"
+        "logs/08.methylation_snakemake/methylation.{prefix}.{index}.{context}.{label}.log"
     shell:
         """
         python {params.scripts}/calcmethylation.py \
             --outfile {output.methylation} \
             --sample_prefix {params.sample} \
             --context {wildcards.context} \
-            --bin_size {wildcards.bin_size} \
+            --bin_size {params.bin_size_bp} \
             --chrom_size_filepath {params.reference}.chrom.sizes \
             2> {log}
         """

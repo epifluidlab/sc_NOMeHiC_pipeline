@@ -75,8 +75,17 @@ hg38_250kb_no_dark_regions: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/h
 # Methylation per-bin output. Produces one TSV per (cell, context, bin_def)
 # under 08.methylation_snakemake/, named
 #   {prefix}.{index}.{context}.{label}_methylation.txt
-# Both GCH and HCG contexts are always computed. Bin definitions are either
-# fixed-size genome-wide tiling, custom region BEDs, or both:
+# Both GCH and HCG contexts are always computed.
+#
+# Bin definitions: fixed-size genome-wide tiling (values in bp) and/or custom
+# region BEDs.
+#
+# For methylation_bin_sizes, the filename `label` is rendered as `Mb` for
+# whole megabases, `kb` for whole kilobases, else `bp`. Examples:
+#   1000     → label = 1kb
+#   100000   → label = 100kb
+#   1000000  → label = 1Mb
+#   500      → label = 500bp
 methylation_bin_sizes:
   - 1000
   - 50000

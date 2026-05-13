@@ -68,8 +68,10 @@ hg38_250kb_no_dark_regions: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/h
 # and matched — both produce files with the same schema, named
 #   {prefix}.{index}.{context}.{label}_methylation.txt
 #
-#   1. methylation_bin_sizes — fixed-size genome-wide tiling. `label` is
-#      `{N}bp` (e.g. `100000bp`).
+#   1. methylation_bin_sizes — fixed-size genome-wide tiling (values in bp).
+#      `label` is rendered human-readably: `Mb` for whole megabases, `kb` for
+#      whole kilobases, otherwise `bp`. e.g.: 1000 → 1kb, 250000 → 250kb,
+#      1000000 → 1Mb, 500 → 500bp.
 methylation_bin_sizes:
   - 1000
   - 50000
