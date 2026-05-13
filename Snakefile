@@ -17,15 +17,18 @@ def get_fastq_prefixes(directory):
             prefixes.add(prefix)
     return list(prefixes)
 
-def discover_pairs_from_trimmed(trimmed_dir, indices):
+def discover_pairs_from_trimmed(trimmed_dir, indices=None):
     """Scan `trimmed_dir` for files like {prefix}.{index}.R1_val_1.fq.gz and
     return the sorted list of (prefix, index) PAIRS that actually exist.
-    `index` is the suffix that matches one of `indices`, so the prefix can
-    itself contain dots. Returning pairs (vs prefix-only) avoids invalid
-    cross-products when datasets have uneven indices per prefix."""
+    The `index` is the suffix after the last `.` in the filename stem, so the
+    prefix can itself contain dots. If `indices` is provided, only pairs whose
+    `index` is in that set are returned. If `indices` is None, every well-
+    formed `{prefix}.{index}.R1_val_1.fq.gz` file contributes a pair regardless
+    of what its `index` is — useful when starting from already-demultiplexed
+    trimmed fastqs and you don't want to maintain a barcode whitelist."""
     if not os.path.isdir(trimmed_dir):
         return []
-    indices_set = set(indices)
+    indices_set = set(indices) if indices is not None else None
     pairs = set()
     for fn in os.listdir(trimmed_dir):
         if not fn.endswith(".R1_val_1.fq.gz"):
@@ -34,52 +37,71 @@ def discover_pairs_from_trimmed(trimmed_dir, indices):
         if "." not in stem:
             continue
         prefix, _, idx = stem.rpartition(".")
-        if idx in indices_set:
+        if indices_set is None or idx in indices_set:
             pairs.add((prefix, idx))
     return sorted(pairs)
 
 # Pipeline starting mode — see configs/config.yaml for the description.
-# INDICES is loaded first because `start_from: trimmed` auto-discovery needs it.
-with open(config["fileindex"]) as f:
-    INDICES = [line.strip() for line in f if line.strip()]
-print(INDICES)
-
-# Global wildcard constraints. Pinning {index} to the actual list of indices
-# eliminates ambiguous matches when filenames contain literal substrings like
-# `_sorted_by_name.calmd.bam`. Without this, snakemake could wrongly resolve
-# e.g. `batch1_sc1.ATCACG_sorted_by_name.calmd.bam` as
-# prefix=batch1_sc1.ATCACG_sorted_by_name / index=calmd.
-wildcard_constraints:
-    index = "|".join(INDICES) if INDICES else r"[^./]+",
+# fileindex is REQUIRED in raw mode (drives demultiplexing). In trimmed mode
+# it's OPTIONAL — if not set, INDICES is auto-derived from the trimmed dir
+# (every filename's suffix after the last `.` before `.R1_val_1.fq.gz`).
+START_FROM = config.get("start_from", "raw")
+_HAS_FILEINDEX = bool(config.get("fileindex"))
+if START_FROM == "raw" and not _HAS_FILEINDEX:
+    raise ValueError("start_from='raw' requires config['fileindex'] for demultiplexing.")
+if _HAS_FILEINDEX:
+    with open(config["fileindex"]) as f:
+        INDICES = [line.strip() for line in f if line.strip()]
+else:
+    INDICES = []  # populated below from the trimmed dir
+print("INDICES (from fileindex):", INDICES)
 
 # Trimmed-fastq directory. Both the (raw-mode) demultiplex_fastqc_trim rule's
 # trimmed outputs and the mapping rule's inputs live here, so override this
 # when your already-trimmed fastqs are in a non-default folder.
 TRIMMED_DATA = config.get("trimmed_data", "03.trimmed_fastq_snakemake")
 
-START_FROM = config.get("start_from", "raw")
 if START_FROM == "raw":
     FASTQ_PREFIXES = get_fastq_prefixes(config["data"])
     CELLS = [(p, i) for p in FASTQ_PREFIXES for i in INDICES]
     SKIP_DEMUX_TRIM = False
 elif START_FROM == "trimmed":
-    # Three ways to specify which cells to process, in order of precedence:
-    #   1. config['fastq_prefixes']      — inline list (cross with INDICES)
-    #   2. config['fastq_prefixes_file'] — one prefix per line (cross with INDICES)
-    #   3. (default) auto-discover from TRIMMED_DATA — returns the actual
-    #      (prefix, index) pairs present on disk, NOT the cross-product.
-    #      This handles datasets where some prefixes only have a subset of
-    #      INDICES (e.g. ATCACG only in 48 cells, CGATGT in 148).
+    # Three ways to determine which cells to process, in order of precedence:
+    #   1. config['fastq_prefixes']      — inline list of prefixes. Cross with
+    #      INDICES if fileindex is set; otherwise pair with whatever indices
+    #      each listed prefix actually has on disk.
+    #   2. config['fastq_prefixes_file'] — same semantics as (1) but read from
+    #      a one-per-line text file.
+    #   3. (default) auto-discover from TRIMMED_DATA — every (prefix, index)
+    #      pair that actually exists. If fileindex is set, used as a barcode
+    #      whitelist; otherwise every distinct suffix found becomes a valid
+    #      index. This handles datasets where some prefixes only have a
+    #      subset of barcodes, or where you mix samples from batches that
+    #      used different barcode sets entirely.
+    _explicit_prefixes = None
     if config.get("fastq_prefixes"):
-        FASTQ_PREFIXES = list(config["fastq_prefixes"])
-        CELLS = [(p, i) for p in FASTQ_PREFIXES for i in INDICES]
+        _explicit_prefixes = list(config["fastq_prefixes"])
     elif config.get("fastq_prefixes_file"):
         with open(config["fastq_prefixes_file"]) as f:
-            FASTQ_PREFIXES = [line.strip() for line in f if line.strip()]
-        CELLS = [(p, i) for p in FASTQ_PREFIXES for i in INDICES]
+            _explicit_prefixes = [line.strip() for line in f if line.strip()]
+    if _explicit_prefixes is not None:
+        FASTQ_PREFIXES = _explicit_prefixes
+        if INDICES:
+            CELLS = [(p, i) for p in FASTQ_PREFIXES for i in INDICES]
+        else:
+            # No fileindex — pair the listed prefixes with the indices each
+            # actually has on disk.
+            disk_pairs = discover_pairs_from_trimmed(TRIMMED_DATA, indices=None)
+            allowed = set(FASTQ_PREFIXES)
+            CELLS = sorted(pi for pi in disk_pairs if pi[0] in allowed)
     else:
-        CELLS = discover_pairs_from_trimmed(TRIMMED_DATA, INDICES)
+        # Pure auto-discover.
+        CELLS = discover_pairs_from_trimmed(TRIMMED_DATA, INDICES or None)
         FASTQ_PREFIXES = sorted({p for p, _ in CELLS})
+    if not INDICES:
+        # In trimmed mode without fileindex, derive INDICES from the chosen pairs.
+        INDICES = sorted({i for _, i in CELLS})
+        print("INDICES (auto-derived from", TRIMMED_DATA, "):", INDICES)
     if not CELLS:
         raise ValueError(
             f"start_from='trimmed' but no (prefix, index) pairs resolved. Set "
@@ -90,6 +112,13 @@ elif START_FROM == "trimmed":
     SKIP_DEMUX_TRIM = True
 else:
     raise ValueError(f"Unknown start_from mode: {START_FROM!r}. Use 'raw' or 'trimmed'.")
+
+# Global wildcard constraints — pin {index} to the resolved values so snakemake
+# never picks the wrong wildcard split for files like
+# `batch1_sc1.ATCACG_sorted_by_name.calmd.bam`.
+wildcard_constraints:
+    index = "|".join(INDICES) if INDICES else r"[^./]+",
+
 include: "rules/hiccluster.smk"
 #include: "rules/GCHnorm.smk"
 
@@ -168,9 +197,11 @@ rule all:
 
 rule demultiplex_fastqc_trim: # combination step to trigger re-runs if failed
     input:
-        r1 = os.path.join(config["data"], "{prefix}_R1_001.fastq.gz"),
-        r2 = os.path.join(config["data"], "{prefix}_R2_001.fastq.gz"),
-        index_file = config["fileindex"]
+        # Placeholders if data/fileindex are absent — the rule is unused in
+        # trimmed mode but its definition still has to parse.
+        r1 = os.path.join(config.get("data") or ".", "{prefix}_R1_001.fastq.gz"),
+        r2 = os.path.join(config.get("data") or ".", "{prefix}_R2_001.fastq.gz"),
+        index_file = config.get("fileindex") or "."
     output:
         # demultiplex output
         r1_demul = "01.demul_fastq_snakemake/{prefix}.{index}.R1.fastq.gz",

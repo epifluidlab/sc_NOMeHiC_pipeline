@@ -32,6 +32,11 @@ start_from: "raw"
 
 # fastq input directory and single cell index
 data: "00.raw_data/"
+
+# Single-cell index file (one barcode per line). REQUIRED in raw mode (drives
+# demultiplexing). OPTIONAL in trimmed mode — if omitted, the pipeline derives
+# the indices from the trimmed filenames in `trimmed_data`. Set it as a
+# whitelist if you want to restrict to specific barcodes.
 fileindex: "00.raw_data/index.txt"
 
 # Trimmed-fastq directory. Used as:

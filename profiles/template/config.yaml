@@ -27,7 +27,12 @@ start_from: "raw"
 # Files must be named {prefix}_R1_001.fastq.gz and {prefix}_R2_001.fastq.gz.
 data: "00.raw_data/"
 
-# Single-cell index file (relative to workdir, or absolute). One index per line.
+# Single-cell index file (one barcode per line, relative to workdir or absolute).
+#   REQUIRED in raw mode — drives demultiplexing.
+#   OPTIONAL in trimmed mode — if omitted, every distinct index suffix found
+#   in trimmed_data is used. Set it as a whitelist to restrict to specific
+#   barcodes (e.g. drop barcodes from earlier batches you don't want to
+#   reprocess).
 fileindex: "00.raw_data/index.txt"
 
 # Trimmed-fastq directory. Used as the output dir for demultiplex_fastqc_trim
