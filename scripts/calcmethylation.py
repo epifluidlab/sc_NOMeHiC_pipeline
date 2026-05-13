@@ -47,11 +47,18 @@ def read_bed(filename):
 
 
 def compute_methylation_levels(methyldf, bed):
-    """Aggregate weighted methylation per bin in `methyldf`. Reads `bed` once,
-    groups its rows by chromosome, then for each bin slices the chrom group by
-    [start, end] coordinate range. O(n_bins + n_sites) per chromosome rather
-    than O(n_bins * n_sites)."""
-    methylevel = np.full(len(methyldf), np.nan, dtype=np.float64)
+    """Aggregate per bin in `methyldf`. Reads `bed` once, groups its rows by
+    chromosome, then for each bin slices the chrom group by [start, end]
+    coordinate range. O(n_bins + n_sites) per chromosome rather than
+    O(n_bins * n_sites). Adds three columns:
+        methylated_reads — int, weighted by rate (sum(rate/100*num), rounded)
+        total_reads      — int, sum of num
+        methylation_level — float, the precise weighted ratio (NaN if total=0)
+    """
+    n_bins = len(methyldf)
+    methylated_reads = np.zeros(n_bins, dtype=np.int64)
+    total_reads = np.zeros(n_bins, dtype=np.int64)
+    methylation_level = np.full(n_bins, np.nan, dtype=np.float64)
     by_chrom = {chrom: g[['start', 'num', 'rate']].sort_values('start').reset_index(drop=True)
                 for chrom, g in bed.groupby('chr')}
     for idx, (_, chrom, start, end) in enumerate(methyldf.reset_index().itertuples(index=False)):
@@ -63,11 +70,16 @@ def compute_methylation_levels(methyldf, bed):
         # bins are 1-based inclusive. A site is "in bin" iff its `start` (BED
         # 0-based) >= bin.start - 1 AND `end` (BED 0-based exclusive) <= bin.end.
         sub = g[(g['start'] >= start - 1) & (g['start'] < end)]
-        n = sub['num'].sum()
+        n = int(sub['num'].sum())
         if n > 0:
-            methylevel[idx] = (sub['rate'] / 100.0 * sub['num']).sum() / n
+            meth_float = float((sub['rate'] / 100.0 * sub['num']).sum())
+            total_reads[idx] = n
+            methylated_reads[idx] = int(round(meth_float))
+            methylation_level[idx] = meth_float / n
     methyldf = methyldf.copy()
-    methyldf['methylation_level'] = methylevel
+    methyldf['methylated_reads'] = methylated_reads
+    methyldf['total_reads'] = total_reads
+    methyldf['methylation_level'] = methylation_level
     return methyldf
 
 
