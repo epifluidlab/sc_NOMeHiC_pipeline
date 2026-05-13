@@ -76,6 +76,10 @@ else:
 include: "rules/hiccluster.smk"
 #include: "rules/GCHnorm.smk"
 
+# Methylation bin sizes (one per-bin TSV produced per cell × context × bin_size)
+METHYLATION_CONTEXTS = ["GCH", "HCG"]
+METHYLATION_BIN_SIZES = list(config.get("methylation_bin_sizes", [1000, 50000, 100000, 250000]))
+
 # Build rule_all target list. When SKIP_DEMUX_TRIM is set, drop the
 # 02.fastqc outputs (which are produced by demultiplex_fastqc_trim).
 _rule_all_targets = []
@@ -88,8 +92,11 @@ if not SKIP_DEMUX_TRIM:
 _rule_all_targets += expand("04.alignment_snakemake/{prefix}.{index}.summary.txt", prefix=FASTQ_PREFIXES, index=INDICES)
 _rule_all_targets += expand("07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.hist.txt", prefix=FASTQ_PREFIXES, index=INDICES)
 _rule_all_targets += ["06.hiccluster_snakemake/hicluster_250kb_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5"]
-_rule_all_targets += expand("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.6plus2.bed", prefix=FASTQ_PREFIXES, index=INDICES)
-_rule_all_targets += expand("08.methylation_snakemake/{prefix}.{index}_methylation.txt", prefix=FASTQ_PREFIXES, index=INDICES)
+_rule_all_targets += expand("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.{context}.6plus2.bed",
+                            prefix=FASTQ_PREFIXES, index=INDICES, context=METHYLATION_CONTEXTS)
+_rule_all_targets += expand("08.methylation_snakemake/{prefix}.{index}.{context}.{bin_size}bp_methylation.txt",
+                            prefix=FASTQ_PREFIXES, index=INDICES,
+                            context=METHYLATION_CONTEXTS, bin_size=METHYLATION_BIN_SIZES)
 
 rule all:
     input: _rule_all_targets
@@ -356,27 +363,32 @@ rule rerun_bistools_all:
                prefix=FASTQ_PREFIXES, index=INDICES)
 
 rule methylation:
+    # One bed → one methylation TSV at one bin size, for one context. The
+    # rule fans out via the {context} and {bin_size} wildcards: snakemake
+    # invokes it for each (context, bin_size) target listed in rule all.
     input:
-        meth_HCG_6plus2 = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.6plus2.bed"
+        bed = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.{context}.6plus2.bed"
     output:
-        methylation = "08.methylation_snakemake/{prefix}.{index}_methylation.txt"
-    threads: 8
+        methylation = "08.methylation_snakemake/{prefix}.{index}.{context}.{bin_size}bp_methylation.txt"
+    wildcard_constraints:
+        context = "GCH|HCG",
+        bin_size = r"\d+"
+    threads: 1
     resources:
-        mem_mb=16000
+        mem_mb=8000
     params:
         sample = "{prefix}.{index}",
         scripts = config["scripts"],
         reference = config["reference"]
     log:
-        "logs/08.methylation_snakemake/methylation.{prefix}.{index}.log"
+        "logs/08.methylation_snakemake/methylation.{prefix}.{index}.{context}.{bin_size}bp.log"
     shell:
         """
         python {params.scripts}/calcmethylation.py \
-        --chrom_size_filepath {params.reference}.chrom.sizes \
-        --sample_prefix {params.sample} \
-        --outfolder 08.methylation_snakemake \
-        --bin_size 1000000 \
-        2> {log}
+            --chrom_size_filepath {params.reference}.chrom.sizes \
+            --sample_prefix {params.sample} \
+            --context {wildcards.context} \
+            --bin_size {wildcards.bin_size} \
+            --outfolder 08.methylation_snakemake \
+            2> {log}
         """
-
-        # python calcmethylation.py --chrom_size_filepath reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.chrom.sizes --sample_prefix ${sample} --outfolder 08.methylation --bin_size 25000

@@ -63,6 +63,16 @@ three_prime_clip_r2: 5
 hg38_5kb_no_dark_regions: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/genome_bins_5kb.bed"
 hg38_250kb_no_dark_regions: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/genome_bins_250kb.bed"
 
+# Methylation per-bin output: bin sizes (in bp) to compute. The pipeline
+# produces one TSV per (cell, context, bin_size) — i.e. 2 contexts × N bin
+# sizes × N cells files under 08.methylation_snakemake/. Defaults: 1kb, 50kb,
+# 100kb, 250kb.
+methylation_bin_sizes:
+  - 1000
+  - 50000
+  - 100000
+  - 250000
+
 # qc analysis thresholds
 fragnum_threshold: 80000
 noncpg_threshold: 5
