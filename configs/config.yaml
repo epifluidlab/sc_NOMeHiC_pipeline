@@ -34,11 +34,19 @@ start_from: "raw"
 data: "00.raw_data/"
 fileindex: "00.raw_data/index.txt"
 
+# Trimmed-fastq directory. Used as:
+#   - the output dir for `demultiplex_fastqc_trim` (start_from == "raw")
+#   - the input dir for `mapping`        (both modes)
+#   - the scan dir for auto-discovery    (start_from == "trimmed", no list set)
+# Path is relative to workdir unless absolute. Override when your already-
+# trimmed fastqs live in a non-default location.
+trimmed_data: "03.trimmed_fastq_snakemake"
+
 # Which cell prefixes to process under start_from == "trimmed", in order of
 # precedence (set ONE; ignored when start_from == "raw"):
 #   1. fastq_prefixes      — inline list (small datasets, <= ~10 cells)
 #   2. fastq_prefixes_file — path to a one-per-line text file (large datasets)
-#   3. (default) auto-discover from 03.trimmed_fastq_snakemake/ — every
+#   3. (default) auto-discover from `trimmed_data` — every
 #      {prefix}.{index}.R1_val_1.fq.gz file present, where {index} matches
 #      one of the values in `fileindex`.
 # fastq_prefixes:

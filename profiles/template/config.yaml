@@ -21,6 +21,13 @@ data: "00.raw_data/"
 # Single-cell index file (relative to workdir). One index per line.
 fileindex: "00.raw_data/index.txt"
 
+# Trimmed-fastq directory. Used as the output dir for demultiplex_fastqc_trim
+# (in raw mode), as the input dir for mapping (both modes), and as the scan
+# dir for auto-discovery (in trimmed mode when no list is configured).
+# Override when your already-trimmed fastqs live elsewhere, e.g.:
+#   trimmed_data: "/scratch/jmj7858/scnomehic/cellline_fastq"
+# trimmed_data: "03.trimmed_fastq_snakemake"
+
 # Which cell prefixes to process under start_from == "trimmed". Pick ONE
 # (in order of precedence; ignored when start_from == "raw"):
 #

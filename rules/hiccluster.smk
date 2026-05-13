@@ -38,6 +38,8 @@ def _discover_prefixes_from_trimmed(trimmed_dir, indices):
 with open(config["fileindex"]) as f:
     INDICES = [line.strip() for line in f if line.strip()]
 
+_TRIMMED_DATA = config.get("trimmed_data", "03.trimmed_fastq_snakemake")
+
 if config.get("start_from", "raw") == "trimmed":
     if config.get("fastq_prefixes"):
         FASTQ_PREFIXES = list(config["fastq_prefixes"])
@@ -45,7 +47,7 @@ if config.get("start_from", "raw") == "trimmed":
         with open(config["fastq_prefixes_file"]) as f:
             FASTQ_PREFIXES = [line.strip() for line in f if line.strip()]
     else:
-        FASTQ_PREFIXES = _discover_prefixes_from_trimmed("03.trimmed_fastq_snakemake", INDICES)
+        FASTQ_PREFIXES = _discover_prefixes_from_trimmed(_TRIMMED_DATA, INDICES)
 else:
     FASTQ_PREFIXES = get_fastq_prefixes(config["data"])
 

@@ -42,6 +42,11 @@ with open(config["fileindex"]) as f:
     INDICES = [line.strip() for line in f if line.strip()]
 print(INDICES)
 
+# Trimmed-fastq directory. Both the (raw-mode) demultiplex_fastqc_trim rule's
+# trimmed outputs and the mapping rule's inputs live here, so override this
+# when your already-trimmed fastqs are in a non-default folder.
+TRIMMED_DATA = config.get("trimmed_data", "03.trimmed_fastq_snakemake")
+
 START_FROM = config.get("start_from", "raw")
 if START_FROM == "raw":
     FASTQ_PREFIXES = get_fastq_prefixes(config["data"])
@@ -51,19 +56,19 @@ elif START_FROM == "trimmed":
     # precedence. Pick whichever fits your dataset size:
     #   1. config['fastq_prefixes']      — inline list (small datasets)
     #   2. config['fastq_prefixes_file'] — path to a one-per-line text file
-    #   3. (default) auto-discover from 03.trimmed_fastq_snakemake/
+    #   3. (default) auto-discover from TRIMMED_DATA
     if config.get("fastq_prefixes"):
         FASTQ_PREFIXES = list(config["fastq_prefixes"])
     elif config.get("fastq_prefixes_file"):
         with open(config["fastq_prefixes_file"]) as f:
             FASTQ_PREFIXES = [line.strip() for line in f if line.strip()]
     else:
-        FASTQ_PREFIXES = discover_prefixes_from_trimmed("03.trimmed_fastq_snakemake", INDICES)
+        FASTQ_PREFIXES = discover_prefixes_from_trimmed(TRIMMED_DATA, INDICES)
     if not FASTQ_PREFIXES:
         raise ValueError(
-            "start_from='trimmed' but no prefixes found. Set config['fastq_prefixes'] "
-            "(list), config['fastq_prefixes_file'] (path to one-per-line file), "
-            "or place {prefix}.{index}.R1_val_1.fq.gz files under 03.trimmed_fastq_snakemake/."
+            f"start_from='trimmed' but no prefixes found. Set config['fastq_prefixes'] "
+            f"(list), config['fastq_prefixes_file'] (path to one-per-line file), "
+            f"or place {{prefix}}.{{index}}.R1_val_1.fq.gz files under {TRIMMED_DATA}/."
         )
     SKIP_DEMUX_TRIM = True
 else:
@@ -111,10 +116,10 @@ rule demultiplex_fastqc_trim: # combination step to trigger re-runs if failed
         r1_out_v2_html = "02.fastqc_out_snakemake/{prefix}.{index}.R2_val_2_fastqc.html",
         r1_out_v2_zip = "02.fastqc_out_snakemake/{prefix}.{index}.R2_val_2_fastqc.zip",
 
-        r1_out_trimmed = "03.trimmed_fastq_snakemake/{prefix}.{index}.R1_val_1.fq.gz",
-        r1_out_report = "03.trimmed_fastq_snakemake/{prefix}.{index}.R1.fastq.gz_trimming_report.txt",
-        r2_out_trimmed = "03.trimmed_fastq_snakemake/{prefix}.{index}.R2_val_2.fq.gz",
-        r2_out_report = "03.trimmed_fastq_snakemake/{prefix}.{index}.R2.fastq.gz_trimming_report.txt"
+        r1_out_trimmed = f"{TRIMMED_DATA}/{{prefix}}.{{index}}.R1_val_1.fq.gz",
+        r1_out_report  = f"{TRIMMED_DATA}/{{prefix}}.{{index}}.R1.fastq.gz_trimming_report.txt",
+        r2_out_trimmed = f"{TRIMMED_DATA}/{{prefix}}.{{index}}.R2_val_2.fq.gz",
+        r2_out_report  = f"{TRIMMED_DATA}/{{prefix}}.{{index}}.R2.fastq.gz_trimming_report.txt"
     threads: 8
     resources:
         mem_mb=32000
@@ -125,7 +130,7 @@ rule demultiplex_fastqc_trim: # combination step to trigger re-runs if failed
         bisulfitehic = config["bisulfitehic"],
 
         # trimming params
-        outdir_fq = "03.trimmed_fastq_snakemake",
+        outdir_fq = TRIMMED_DATA,
         clip_r1 = config["clip_r1"],
         clip_r2 = config["clip_r2"],
         three_prime_clip_r1 = config["three_prime_clip_r1"],
@@ -159,8 +164,8 @@ rule demultiplex_fastqc_trim: # combination step to trigger re-runs if failed
 
 rule mapping:
     input:
-        r1_trimmed = "03.trimmed_fastq_snakemake/{prefix}.{index}.R1_val_1.fq.gz",
-        r2_trimmed = "03.trimmed_fastq_snakemake/{prefix}.{index}.R2_val_2.fq.gz"
+        r1_trimmed = f"{TRIMMED_DATA}/{{prefix}}.{{index}}.R1_val_1.fq.gz",
+        r2_trimmed = f"{TRIMMED_DATA}/{{prefix}}.{{index}}.R2_val_2.fq.gz"
     output:
         bam = "04.alignment_snakemake/{prefix}.{index}.bam"
     threads: 8
