@@ -17,43 +17,40 @@ def get_fastq_prefixes(directory):
             prefixes.add(prefix)
     return list(prefixes)
 
-FASTQ_PREFIXES = get_fastq_prefixes(config["data"])
-#FASTQ_PREFIXES = get_fastq_prefixes('/gpfs/projects/b1198/epifluidlab/yoshii/meningioma_scnomehic/data_batch_2/02.fastqc_out_snakemake')
+# FASTQ_PREFIXES sources:
+#   - if config['fastq_prefixes'] is set, use that list directly. This is the
+#     'start from already-trimmed inputs' mode: demux + fastqc + trim are
+#     skipped, and only the rules from mapping onward run.
+#   - else: scan config['data'] for raw fastqs (default production mode).
+if config.get("fastq_prefixes"):
+    FASTQ_PREFIXES = list(config["fastq_prefixes"])
+    SKIP_DEMUX_TRIM = True
+else:
+    FASTQ_PREFIXES = get_fastq_prefixes(config["data"])
+    SKIP_DEMUX_TRIM = False
 with open(config["fileindex"]) as f:
     INDICES = [line.strip() for line in f]
 print(INDICES)
 include: "rules/hiccluster.smk"
 #include: "rules/GCHnorm.smk"
 
-rule all: # does this need only the end output or every single one??
-    input:
-        # 01.fastqc output
-        expand("02.fastqc_out_snakemake/{prefix}.{index}.R1_fastqc.html", prefix=FASTQ_PREFIXES, index=INDICES),
-        expand("02.fastqc_out_snakemake/{prefix}.{index}.R1_fastqc.zip", prefix=FASTQ_PREFIXES, index=INDICES),
-        
-        expand("02.fastqc_out_snakemake/{prefix}.{index}.R2_fastqc.html", prefix=FASTQ_PREFIXES, index=INDICES),
-        expand("02.fastqc_out_snakemake/{prefix}.{index}.R2_fastqc.zip", prefix=FASTQ_PREFIXES, index=INDICES),
+# Build rule_all target list. When SKIP_DEMUX_TRIM is set, drop the
+# 02.fastqc outputs (which are produced by demultiplex_fastqc_trim).
+_rule_all_targets = []
+if not SKIP_DEMUX_TRIM:
+    _rule_all_targets += expand("02.fastqc_out_snakemake/{prefix}.{index}.R1_fastqc.html", prefix=FASTQ_PREFIXES, index=INDICES)
+    _rule_all_targets += expand("02.fastqc_out_snakemake/{prefix}.{index}.R1_fastqc.zip",  prefix=FASTQ_PREFIXES, index=INDICES)
+    _rule_all_targets += expand("02.fastqc_out_snakemake/{prefix}.{index}.R2_fastqc.html", prefix=FASTQ_PREFIXES, index=INDICES)
+    _rule_all_targets += expand("02.fastqc_out_snakemake/{prefix}.{index}.R2_fastqc.zip",  prefix=FASTQ_PREFIXES, index=INDICES)
+# always — downstream targets, applicable in both modes
+_rule_all_targets += expand("04.alignment_snakemake/{prefix}.{index}.summary.txt", prefix=FASTQ_PREFIXES, index=INDICES)
+_rule_all_targets += expand("07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.hist.txt", prefix=FASTQ_PREFIXES, index=INDICES)
+_rule_all_targets += ["06.hiccluster_snakemake/hicluster_250kb_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5"]
+_rule_all_targets += expand("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.6plus2.bed", prefix=FASTQ_PREFIXES, index=INDICES)
+_rule_all_targets += expand("08.methylation_snakemake/{prefix}.{index}_methylation.txt", prefix=FASTQ_PREFIXES, index=INDICES)
 
-        # 04.qc output GETS MOVED BY 07.BISTOOLS
-        expand("04.alignment_snakemake/{prefix}.{index}.summary.txt", prefix = FASTQ_PREFIXES, index = INDICES),
-
-        # 04b.bisqc output
-        expand("07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.hist.txt", prefix = FASTQ_PREFIXES, index = INDICES),
-
-        # 06.hiccluster output
-        ## generate-matrix output (single cell dependent)
-        # expand("06.hiccluster_snakemake/hicluster_250kb_raw_dir/{prefix}.{index}.generatematrix.done", prefix = FASTQ_PREFIXES, index = INDICES),
-        ## merge-chromosome-data output (perhaps for later step?)
-        "06.hiccluster_snakemake/hicluster_250kb_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5",
-
-        # 07.bistools output — per-base HCG BED, the input to rule methylation
-        expand("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.6plus2.bed", prefix = FASTQ_PREFIXES, index = INDICES),
-
-        # 08.methylation output
-        expand("08.methylation_snakemake/{prefix}.{index}_methylation.txt", prefix = FASTQ_PREFIXES, index = INDICES),
-
-        # 09.GCHnorm output
-        #expand("09.GCHnorm_snakemake/methytab2pbetabinom/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.5kb_interval.pbetabinom.txt", prefix = FASTQ_PREFIXES, index = INDICES)
+rule all:
+    input: _rule_all_targets
 
 rule demultiplex_fastqc_trim: # combination step to trigger re-runs if failed
     input:
