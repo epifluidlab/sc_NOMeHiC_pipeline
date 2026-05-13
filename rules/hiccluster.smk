@@ -8,50 +8,10 @@ configfile: "configs/config.yaml"
 # Set working directory
 workdir: config["workdir"]
 
-def get_fastq_prefixes(directory):
-    prefixes = set()
-    for filename in os.listdir(directory):
-        if filename.endswith('.fastq.gz'):
-            prefix = filename.rsplit('_', 2)[0]  # keep everything before the last two underscores
-            prefixes.add(prefix)
-    return list(prefixes)
-
-# Same FASTQ_PREFIXES logic as the main Snakefile (see notes there). Three
-# trimmed-mode sources in order of precedence: inline list, path-to-file,
-# auto-discover from 03.trimmed_fastq_snakemake/.
-def _discover_prefixes_from_trimmed(trimmed_dir, indices):
-    if not os.path.isdir(trimmed_dir):
-        return []
-    indices_set = set(indices)
-    prefixes = set()
-    for fn in os.listdir(trimmed_dir):
-        if not fn.endswith(".R1_val_1.fq.gz"):
-            continue
-        stem = fn[:-len(".R1_val_1.fq.gz")]
-        if "." not in stem:
-            continue
-        prefix, _, idx = stem.rpartition(".")
-        if idx in indices_set:
-            prefixes.add(prefix)
-    return sorted(prefixes)
-
-with open(config["fileindex"]) as f:
-    INDICES = [line.strip() for line in f if line.strip()]
-
-_TRIMMED_DATA = config.get("trimmed_data", "03.trimmed_fastq_snakemake")
-
-if config.get("start_from", "raw") == "trimmed":
-    if config.get("fastq_prefixes"):
-        FASTQ_PREFIXES = list(config["fastq_prefixes"])
-    elif config.get("fastq_prefixes_file"):
-        with open(config["fastq_prefixes_file"]) as f:
-            FASTQ_PREFIXES = [line.strip() for line in f if line.strip()]
-    else:
-        FASTQ_PREFIXES = _discover_prefixes_from_trimmed(_TRIMMED_DATA, INDICES)
-else:
-    FASTQ_PREFIXES = get_fastq_prefixes(config["data"])
-
-SAMPLES = [f"{prefix}.{index}" for prefix in FASTQ_PREFIXES for index in INDICES]
+# FASTQ_PREFIXES, INDICES, and CELLS come from the main Snakefile (the include
+# happens after they are set). SAMPLES here is derived from CELLS so we only
+# carry the (prefix, index) pairs that actually exist on disk.
+SAMPLES = [f"{p}.{i}" for p, i in CELLS]
 
 # CHROM = [str(c) for c in range(1, 23)] + ['EBV', 'M', 'Un', 'X', 'Y']
 CHROM = [str(c) for c in range(1, 23)]
@@ -146,7 +106,7 @@ rule generatematrix:
 
 checkpoint excludemissing:
     input:
-        expand("06.hiccluster_snakemake/hicluster_250kb_raw_dir/{prefix}.{index}.generatematrix.done", prefix = FASTQ_PREFIXES, index = INDICES)
+        [f"06.hiccluster_snakemake/hicluster_250kb_raw_dir/{p}.{i}.generatematrix.done" for p, i in CELLS]
     output:
         checkpoint_done = touch("06.hiccluster_snakemake/hicluster_check/check_missing_chrom.done"),
         passed = "06.hiccluster_snakemake/hicluster_check/passed_cells.txt",

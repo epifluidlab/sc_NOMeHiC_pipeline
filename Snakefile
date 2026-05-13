@@ -17,14 +17,16 @@ def get_fastq_prefixes(directory):
             prefixes.add(prefix)
     return list(prefixes)
 
-def discover_prefixes_from_trimmed(trimmed_dir, indices):
+def discover_pairs_from_trimmed(trimmed_dir, indices):
     """Scan `trimmed_dir` for files like {prefix}.{index}.R1_val_1.fq.gz and
-    return the sorted unique prefixes. `index` is taken to be the suffix that
-    matches one of `indices` (so the prefix can itself contain dots)."""
+    return the sorted list of (prefix, index) PAIRS that actually exist.
+    `index` is the suffix that matches one of `indices`, so the prefix can
+    itself contain dots. Returning pairs (vs prefix-only) avoids invalid
+    cross-products when datasets have uneven indices per prefix."""
     if not os.path.isdir(trimmed_dir):
         return []
     indices_set = set(indices)
-    prefixes = set()
+    pairs = set()
     for fn in os.listdir(trimmed_dir):
         if not fn.endswith(".R1_val_1.fq.gz"):
             continue
@@ -33,14 +35,22 @@ def discover_prefixes_from_trimmed(trimmed_dir, indices):
             continue
         prefix, _, idx = stem.rpartition(".")
         if idx in indices_set:
-            prefixes.add(prefix)
-    return sorted(prefixes)
+            pairs.add((prefix, idx))
+    return sorted(pairs)
 
 # Pipeline starting mode — see configs/config.yaml for the description.
 # INDICES is loaded first because `start_from: trimmed` auto-discovery needs it.
 with open(config["fileindex"]) as f:
     INDICES = [line.strip() for line in f if line.strip()]
 print(INDICES)
+
+# Global wildcard constraints. Pinning {index} to the actual list of indices
+# eliminates ambiguous matches when filenames contain literal substrings like
+# `_sorted_by_name.calmd.bam`. Without this, snakemake could wrongly resolve
+# e.g. `batch1_sc1.ATCACG_sorted_by_name.calmd.bam` as
+# prefix=batch1_sc1.ATCACG_sorted_by_name / index=calmd.
+wildcard_constraints:
+    index = "|".join(INDICES) if INDICES else r"[^./]+",
 
 # Trimmed-fastq directory. Both the (raw-mode) demultiplex_fastqc_trim rule's
 # trimmed outputs and the mapping rule's inputs live here, so override this
@@ -50,31 +60,56 @@ TRIMMED_DATA = config.get("trimmed_data", "03.trimmed_fastq_snakemake")
 START_FROM = config.get("start_from", "raw")
 if START_FROM == "raw":
     FASTQ_PREFIXES = get_fastq_prefixes(config["data"])
+    CELLS = [(p, i) for p in FASTQ_PREFIXES for i in INDICES]
     SKIP_DEMUX_TRIM = False
 elif START_FROM == "trimmed":
-    # Three ways to specify which cell prefixes to process, in order of
-    # precedence. Pick whichever fits your dataset size:
-    #   1. config['fastq_prefixes']      — inline list (small datasets)
-    #   2. config['fastq_prefixes_file'] — path to a one-per-line text file
-    #   3. (default) auto-discover from TRIMMED_DATA
+    # Three ways to specify which cells to process, in order of precedence:
+    #   1. config['fastq_prefixes']      — inline list (cross with INDICES)
+    #   2. config['fastq_prefixes_file'] — one prefix per line (cross with INDICES)
+    #   3. (default) auto-discover from TRIMMED_DATA — returns the actual
+    #      (prefix, index) pairs present on disk, NOT the cross-product.
+    #      This handles datasets where some prefixes only have a subset of
+    #      INDICES (e.g. ATCACG only in 48 cells, CGATGT in 148).
     if config.get("fastq_prefixes"):
         FASTQ_PREFIXES = list(config["fastq_prefixes"])
+        CELLS = [(p, i) for p in FASTQ_PREFIXES for i in INDICES]
     elif config.get("fastq_prefixes_file"):
         with open(config["fastq_prefixes_file"]) as f:
             FASTQ_PREFIXES = [line.strip() for line in f if line.strip()]
+        CELLS = [(p, i) for p in FASTQ_PREFIXES for i in INDICES]
     else:
-        FASTQ_PREFIXES = discover_prefixes_from_trimmed(TRIMMED_DATA, INDICES)
-    if not FASTQ_PREFIXES:
+        CELLS = discover_pairs_from_trimmed(TRIMMED_DATA, INDICES)
+        FASTQ_PREFIXES = sorted({p for p, _ in CELLS})
+    if not CELLS:
         raise ValueError(
-            f"start_from='trimmed' but no prefixes found. Set config['fastq_prefixes'] "
-            f"(list), config['fastq_prefixes_file'] (path to one-per-line file), "
-            f"or place {{prefix}}.{{index}}.R1_val_1.fq.gz files under {TRIMMED_DATA}/."
+            f"start_from='trimmed' but no (prefix, index) pairs resolved. Set "
+            f"config['fastq_prefixes'] (list), config['fastq_prefixes_file'] "
+            f"(path to one-per-line file), or place "
+            f"{{prefix}}.{{index}}.R1_val_1.fq.gz files under {TRIMMED_DATA}/."
         )
     SKIP_DEMUX_TRIM = True
 else:
     raise ValueError(f"Unknown start_from mode: {START_FROM!r}. Use 'raw' or 'trimmed'.")
 include: "rules/hiccluster.smk"
 #include: "rules/GCHnorm.smk"
+
+def _expand_cells(template, **extra):
+    """Expand `template` over every (prefix, index) pair in CELLS, plus any
+    extra wildcards. Like snakemake's expand() but pair-aware so we don't
+    construct invalid cross-product cells."""
+    if not extra:
+        return [template.format(prefix=p, index=i) for p, i in CELLS]
+    keys = list(extra.keys())
+    vals = [extra[k] for k in keys]
+    out = []
+    for p, i in CELLS:
+        # iterate Cartesian over extra dims
+        from itertools import product
+        for combo in product(*vals):
+            fmt = {"prefix": p, "index": i}
+            fmt.update(dict(zip(keys, combo)))
+            out.append(template.format(**fmt))
+    return out
 
 # Methylation per-bin output configuration. The pipeline produces one TSV
 # per cell × context × bin_definition. Bin definitions can be either:
@@ -112,23 +147,21 @@ METHYLATION_BIN_LABELS = [_bin_size_to_label(n) for n in METHYLATION_BIN_SIZES]
 # 02.fastqc outputs (which are produced by demultiplex_fastqc_trim).
 _rule_all_targets = []
 if not SKIP_DEMUX_TRIM:
-    _rule_all_targets += expand("02.fastqc_out_snakemake/{prefix}.{index}.R1_fastqc.html", prefix=FASTQ_PREFIXES, index=INDICES)
-    _rule_all_targets += expand("02.fastqc_out_snakemake/{prefix}.{index}.R1_fastqc.zip",  prefix=FASTQ_PREFIXES, index=INDICES)
-    _rule_all_targets += expand("02.fastqc_out_snakemake/{prefix}.{index}.R2_fastqc.html", prefix=FASTQ_PREFIXES, index=INDICES)
-    _rule_all_targets += expand("02.fastqc_out_snakemake/{prefix}.{index}.R2_fastqc.zip",  prefix=FASTQ_PREFIXES, index=INDICES)
+    _rule_all_targets += _expand_cells("02.fastqc_out_snakemake/{prefix}.{index}.R1_fastqc.html")
+    _rule_all_targets += _expand_cells("02.fastqc_out_snakemake/{prefix}.{index}.R1_fastqc.zip")
+    _rule_all_targets += _expand_cells("02.fastqc_out_snakemake/{prefix}.{index}.R2_fastqc.html")
+    _rule_all_targets += _expand_cells("02.fastqc_out_snakemake/{prefix}.{index}.R2_fastqc.zip")
 # always — downstream targets, applicable in both modes
-_rule_all_targets += expand("04.alignment_snakemake/{prefix}.{index}.summary.txt", prefix=FASTQ_PREFIXES, index=INDICES)
-_rule_all_targets += expand("07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.hist.txt", prefix=FASTQ_PREFIXES, index=INDICES)
+_rule_all_targets += _expand_cells("04.alignment_snakemake/{prefix}.{index}.summary.txt")
+_rule_all_targets += _expand_cells("07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.hist.txt")
 _rule_all_targets += ["06.hiccluster_snakemake/hicluster_250kb_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5"]
-_rule_all_targets += expand("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.{context}.6plus2.bed",
-                            prefix=FASTQ_PREFIXES, index=INDICES, context=METHYLATION_CONTEXTS)
-_rule_all_targets += expand("08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt",
-                            prefix=FASTQ_PREFIXES, index=INDICES,
-                            context=METHYLATION_CONTEXTS, label=METHYLATION_BIN_LABELS)
+_rule_all_targets += _expand_cells("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.{context}.6plus2.bed",
+                                   context=METHYLATION_CONTEXTS)
+_rule_all_targets += _expand_cells("08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt",
+                                   context=METHYLATION_CONTEXTS, label=METHYLATION_BIN_LABELS)
 if METHYLATION_REGION_LABELS:
-    _rule_all_targets += expand("08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt",
-                                prefix=FASTQ_PREFIXES, index=INDICES,
-                                context=METHYLATION_CONTEXTS, label=METHYLATION_REGION_LABELS)
+    _rule_all_targets += _expand_cells("08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt",
+                                       context=METHYLATION_CONTEXTS, label=METHYLATION_REGION_LABELS)
 
 rule all:
     input: _rule_all_targets
@@ -389,10 +422,8 @@ rule bistools:
 
 rule rerun_bistools_all:
     input:
-        expand("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.GCH.6plus2.bed",
-               prefix=FASTQ_PREFIXES, index=INDICES) +
-        expand("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.6plus2.bed",
-               prefix=FASTQ_PREFIXES, index=INDICES)
+        _expand_cells("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.GCH.6plus2.bed")
+        + _expand_cells("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.6plus2.bed")
 
 rule methylation:
     # Fixed-bin-size methylation: one TSV per cell × context × bin_size.
