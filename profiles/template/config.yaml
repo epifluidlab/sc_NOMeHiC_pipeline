@@ -1,0 +1,48 @@
+# Per-project pipeline config — copy this file into your project directory and
+# edit the values below. Anything you DON'T set here is inherited from the
+# repo's configs/config.yaml (reference paths, software paths, qc thresholds,
+# etc), so this file only needs the project-specific bits.
+
+# Absolute path to this project's working directory. All pipeline outputs land
+# here as subdirectories (01.demul_fastq_snakemake/, 04.alignment_snakemake/,
+# 07.bistools_snakemake/, 08.methylation_snakemake/, etc).
+workdir: "/projects/b1198/epifluidlab/yoshii/runs/REPLACE_ME"
+
+# Pipeline starting mode:
+#   "raw"     — start from raw paired fastqs in `data/` (runs demultiplex + fastqc + trim)
+#   "trimmed" — start from already-trimmed fastqs in 03.trimmed_fastq_snakemake/
+#               (skips demux + fastqc + trim; requires `fastq_prefixes` below)
+start_from: "raw"
+
+# Raw fastq directory (relative to workdir). Used only when start_from == "raw".
+# Files must be named {prefix}_R1_001.fastq.gz and {prefix}_R2_001.fastq.gz.
+data: "00.raw_data/"
+
+# Single-cell index file (relative to workdir). One index per line.
+fileindex: "00.raw_data/index.txt"
+
+# Required when start_from == "trimmed"; ignored otherwise. List each cell
+# prefix; the pipeline expects
+#   03.trimmed_fastq_snakemake/{prefix}.{index}.R1_val_1.fq.gz
+# (and R2_val_2.fq.gz) for each index in fileindex.
+# fastq_prefixes:
+#   - batch5_scD_1
+#   - batch5_scD_2
+
+# ─────────────────────────────────────────────────────────────────────────
+# Optional per-project overrides — uncomment to override the repo defaults.
+# ─────────────────────────────────────────────────────────────────────────
+
+# Adapter trimming parameters
+# clip_r1: 15
+# clip_r2: 15
+# three_prime_clip_r1: 5
+# three_prime_clip_r2: 5
+
+# QC analysis thresholds (used by rules/scnomehic_analysis.smk)
+# fragnum_threshold: 80000
+# noncpg_threshold: 5
+# GCH_threshold: 1000000
+# HCG_threshold: 150000
+# transrate_threshold: 0.7
+# cis1kbnum_threshold: 2000
