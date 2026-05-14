@@ -119,6 +119,18 @@ else:
 wildcard_constraints:
     index = "|".join(INDICES) if INDICES else r"[^./]+",
 
+# Shell prefix prepended to every rule's shell. Default puts the scnomehic conda
+# env's bin FIRST in PATH (so `samtools` resolves to the conda-shipped 1.21
+# instead of the system samtools-1.16 which links against an absent
+# libcrypto.so.10 on Quest compute nodes), and appends hic_env's bin (provides
+# `hicluster` for the hiccluster rules). Override via config['shell_prefix']
+# to point at a different conda layout, or set it to "" to disable.
+_DEFAULT_SHELL_PREFIX = (
+    "export PATH=/projects/b1198/epifluidlab/yoshii/software/conda/envs/scnomehic/bin:"
+    "$PATH:/projects/b1198/epifluidlab/yoshii/software/conda/envs/hic_env/bin; "
+)
+shell.prefix(config.get("shell_prefix", _DEFAULT_SHELL_PREFIX))
+
 include: "rules/hiccluster.smk"
 #include: "rules/GCHnorm.smk"
 
