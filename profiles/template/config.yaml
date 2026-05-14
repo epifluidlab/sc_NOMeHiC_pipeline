@@ -70,6 +70,13 @@ bissnp_jar: "/gpfs/projects/b1198/epifluidlab/yoshii/software/Bis-tools/Bis-SNP/
 bistools: "/gpfs/projects/b1198/epifluidlab/yoshii/software/Bis-tools"
 scripts: "/gpfs/projects/b1198/epifluidlab/yoshii/software/sc_NOMeHiC_pipeline/scripts"
 
+# Shell prefix prepended to every rule's shell. The default puts scnomehic's
+# conda env first in PATH (so `samtools` resolves to the conda-bundled 1.21,
+# not the broken system samtools-1.16 that fails on libcrypto.so.10 on Quest
+# compute nodes), and appends hic_env's bin (provides `hicluster`). Override
+# below if you use a different conda layout. Set to "" to disable entirely.
+# shell_prefix: "export PATH=/path/to/your/env/bin:$PATH; "
+
 # GCHnorm genome intervals (used by rules/GCHnorm.smk; only needed if you
 # enable that workflow)
 hg38_5kb_no_dark_regions: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/genome_bins_5kb.bed"

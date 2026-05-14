@@ -14,6 +14,12 @@ bistools: "/gpfs/projects/b1198/epifluidlab/yoshii/software/Bis-tools"
 # NOTE: bistools/Bis-SNP/bissnp_nomehic_usage.pl is the scNOMe-HiC wrapper used by rule bistools.
 scripts: "/gpfs/projects/b1198/epifluidlab/yoshii/software/sc_NOMeHiC_pipeline/scripts"
 
+# Optional: shell prefix prepended to every rule's shell. The Snakefile sets
+# a sane default (scnomehic conda env first in PATH, hic_env appended) so
+# rules find the right samtools / bedtools / hicluster binaries on Quest
+# compute nodes. Override if you use a different conda layout.
+# shell_prefix: "export PATH=/path/to/your/env/bin:$PATH; "
+
 # ──────────────────────────────────────────────────────────────────────────
 # Pipeline starting mode
 #
