@@ -134,6 +134,18 @@ shell.prefix(config.get("shell_prefix", _DEFAULT_SHELL_PREFIX))
 include: "rules/hiccluster.smk"
 #include: "rules/GCHnorm.smk"
 
+def _resolve_bed_or_gz(template):
+    """Return a snakemake input function that, at DAG-build time, picks
+    `<template>.gz` if that exists on disk, else falls back to `<template>`
+    (plain .bed). Lets rules consume either pre-existing gzipped beds or
+    pipeline-produced plain beds without changing the producer rule."""
+    def _inner(wildcards):
+        plain = template.format(**dict(wildcards.items()))
+        if os.path.exists(plain + ".gz") and not os.path.exists(plain):
+            return plain + ".gz"
+        return plain
+    return _inner
+
 def _expand_cells(template, **extra):
     """Expand `template` over every (prefix, index) pair in CELLS, plus any
     extra wildcards. Like snakemake's expand() but pair-aware so we don't
@@ -468,13 +480,15 @@ rule rerun_bistools_all:
         _expand_cells("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.GCH.6plus2.bed")
         + _expand_cells("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.6plus2.bed")
 
+_METHYL_BED_TEMPLATE = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.{context}.6plus2.bed"
+
 rule methylation:
     # Fixed-bin-size methylation: one TSV per cell × context × bin_size.
-    # The {label} wildcard is constrained to NNbp/NNkb/NNMb so this rule
-    # doesn't collide with rule methylation_region (which uses a label that
-    # starts with a letter).
+    # Input picks .bed.gz if it exists on disk, else .bed (plain).
+    # {label} constrained to NNbp/NNkb/NNMb so this rule doesn't collide
+    # with methylation_region (non-digit {label}).
     input:
-        bed = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.{context}.6plus2.bed"
+        bed = _resolve_bed_or_gz(_METHYL_BED_TEMPLATE)
     output:
         methylation = "08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt"
     wildcard_constraints:
@@ -484,7 +498,6 @@ rule methylation:
     resources:
         mem_mb=8000
     params:
-        sample = "{prefix}.{index}",
         scripts = config["scripts"],
         reference = config["reference"],
         bin_size_bp = lambda wildcards: _bin_label_to_size(wildcards.label)
@@ -494,7 +507,7 @@ rule methylation:
         """
         python {params.scripts}/calcmethylation.py \
             --outfile {output.methylation} \
-            --sample_prefix {params.sample} \
+            --bed_path {input.bed} \
             --context {wildcards.context} \
             --bin_size {params.bin_size_bp} \
             --chrom_size_filepath {params.reference}.chrom.sizes \
@@ -503,12 +516,11 @@ rule methylation:
 
 
 rule methylation_region:
-    # Custom-region methylation: one TSV per cell × context × region_label,
-    # where the regions come from a user-provided BED. The label wildcard is
-    # constrained to start with a non-digit so this rule doesn't collide
-    # with rule methylation (digit-only {bin_size}).
+    # Custom-region methylation: one TSV per cell × context × region_label.
+    # Input picks .bed.gz if present, else .bed. {label} constrained to
+    # start with a non-digit so this rule doesn't collide with methylation.
     input:
-        bed = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.{context}.6plus2.bed"
+        bed = _resolve_bed_or_gz(_METHYL_BED_TEMPLATE)
     output:
         methylation = "08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt"
     wildcard_constraints:
@@ -518,7 +530,6 @@ rule methylation_region:
     resources:
         mem_mb=8000
     params:
-        sample = "{prefix}.{index}",
         scripts = config["scripts"],
         region_bed = lambda wildcards: (config.get("methylation_region_beds") or {})[wildcards.label]
     log:
@@ -527,7 +538,7 @@ rule methylation_region:
         """
         python {params.scripts}/calcmethylation.py \
             --outfile {output.methylation} \
-            --sample_prefix {params.sample} \
+            --bed_path {input.bed} \
             --context {wildcards.context} \
             --bin_bed {params.region_bed} \
             2> {log}

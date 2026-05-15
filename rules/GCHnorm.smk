@@ -22,20 +22,31 @@ with open(config["fileindex"]) as f:
 
 # rule all:
 #     input:
-#         expand("09.GCHnorm_snakemake/methytab2pbetabinom/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.5kb_interval.pbetabinom.txt", prefix = FASTQ_PREFIXES, index = INDICES)
+#         expand("09.GCHnorm_snakemake/methytab2pbetabinom/{prefix}.{index}.cyt.filtered.sort.GCH.5kb_interval.pbetabinom.txt", prefix = FASTQ_PREFIXES, index = INDICES)
+
+def _gchnorm_bed_input(wildcards):
+    """Pick {prefix}.{index}.cyt.filtered.sort.GCH.6plus2.bed.gz if present,
+    else .bed. bed6plus2bw.pl handles both via its own filename check."""
+    plain = (
+        f"07.bistools_snakemake/methylation/{wildcards.prefix}.{wildcards.index}/"
+        f"{wildcards.prefix}.{wildcards.index}.cyt.filtered.sort.GCH.6plus2.bed"
+    )
+    if os.path.exists(plain + ".gz") and not os.path.exists(plain):
+        return plain + ".gz"
+    return plain
 
 rule bed2bigwig:
     input:
-        bed = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.6plus2.bed"
+        bed = _gchnorm_bed_input
     output:
-        methy_bw = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.methy.bw",
-        cov_bw = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.cov.bw",
-        m_count_bw = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.methy_count.bw"
+        methy_bw   = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.cyt.filtered.sort.GCH.methy.bw",
+        cov_bw     = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.cyt.filtered.sort.GCH.cov.bw",
+        m_count_bw = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.cyt.filtered.sort.GCH.methy_count.bw"
     threads: 1
     resources:
         mem_mb = 16000
     params:
-        out_prefix = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH",
+        out_prefix = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.cyt.filtered.sort.GCH",
         scripts = config["scripts"]
     log:
         "logs/09.GCHnorm/bed2bw/bed2bw.{prefix}.{index}.log"
@@ -47,16 +58,16 @@ rule bed2bigwig:
 
 rule bw2tab:
     input:
-        counts_bw = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.methy_count.bw",
-        coverage_bw = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.cov.bw"
+        counts_bw = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.cyt.filtered.sort.GCH.methy_count.bw",
+        coverage_bw = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.cyt.filtered.sort.GCH.cov.bw"
     output:
         # 5kb tabs
-        counts_5kb_tab = "09.GCHnorm_snakemake/bw2tab/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.methy_count.5kb_interval.tab",
-        coverage_5kb_tab = "09.GCHnorm_snakemake/bw2tab/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.cov.5kb_interval.tab",
+        counts_5kb_tab = "09.GCHnorm_snakemake/bw2tab/{prefix}.{index}.cyt.filtered.sort.GCH.methy_count.5kb_interval.tab",
+        coverage_5kb_tab = "09.GCHnorm_snakemake/bw2tab/{prefix}.{index}.cyt.filtered.sort.GCH.cov.5kb_interval.tab",
 
         # 250kb tabs
-        # counts_250kb_tab = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.methy_count.250kb_interval.tab",
-        # coverage_250kb_tab = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.cov.250kb_interval.tab"
+        # counts_250kb_tab = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.cyt.filtered.sort.GCH.methy_count.250kb_interval.tab",
+        # coverage_250kb_tab = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.cyt.filtered.sort.GCH.cov.250kb_interval.tab"
     threads: 4
     resources:
         mem_mb=32000
@@ -93,13 +104,13 @@ rule bw2tab:
 
 rule methytab2pbetabinom:
     input:
-        counts_5kb_tab = "09.GCHnorm_snakemake/bw2tab/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.methy_count.5kb_interval.tab",
-        coverage_5kb_tab = "09.GCHnorm_snakemake/bw2tab/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.cov.5kb_interval.tab",
-        # counts_250kb_tab = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.methy_count.250kb_interval.tab",
-        # coverage_250kb_tab = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.cov.250kb_interval.tab"
+        counts_5kb_tab = "09.GCHnorm_snakemake/bw2tab/{prefix}.{index}.cyt.filtered.sort.GCH.methy_count.5kb_interval.tab",
+        coverage_5kb_tab = "09.GCHnorm_snakemake/bw2tab/{prefix}.{index}.cyt.filtered.sort.GCH.cov.5kb_interval.tab",
+        # counts_250kb_tab = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.cyt.filtered.sort.GCH.methy_count.250kb_interval.tab",
+        # coverage_250kb_tab = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.cyt.filtered.sort.GCH.cov.250kb_interval.tab"
     output:
-        pbetabinom_5kb = "09.GCHnorm_snakemake/methytab2pbetabinom/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.5kb_interval.pbetabinom.txt",
-        # pbetabinom_250kb = "09.GCHnorm_snakemake/methytab2pbetabinom/{prefix}.{index}.calmd.cytosine.filtered.sort.GCH.250kb_interval.pbetabinom.txt"
+        pbetabinom_5kb = "09.GCHnorm_snakemake/methytab2pbetabinom/{prefix}.{index}.cyt.filtered.sort.GCH.5kb_interval.pbetabinom.txt",
+        # pbetabinom_250kb = "09.GCHnorm_snakemake/methytab2pbetabinom/{prefix}.{index}.cyt.filtered.sort.GCH.250kb_interval.pbetabinom.txt"
     threads: 1
     resources:
         mem_mb=16000

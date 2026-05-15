@@ -116,11 +116,17 @@ def compute_methylation_levels(methyldf, bed):
 def main():
     parser = argparse.ArgumentParser(description='Compute per-bin methylation for one cell + context.')
     parser.add_argument('--outfile', required=True, help='Output TSV path')
-    parser.add_argument('--sample_prefix', required=True, help='Cell prefix (e.g. batch5_scD_1.CGATGT)')
-    parser.add_argument('--context', required=True, choices=['GCH', 'HCG'],
-                        help='Cytosine context to aggregate')
+    parser.add_argument('--sample_prefix', help='Cell prefix (e.g. batch5_scD_1.CGATGT); used '
+                        'to construct the BED path when --bed_path is omitted')
+    parser.add_argument('--context', choices=['GCH', 'HCG'],
+                        help='Cytosine context to aggregate; required for path construction '
+                        'when --bed_path is omitted')
+    parser.add_argument('--bed_path',
+                        help='Explicit path to the per-base BisSNP 6plus2 BED (plain or .gz). '
+                        'Overrides the --bed_root/--sample_prefix/--context construction.')
     parser.add_argument('--bed_root', default='07.bistools_snakemake/methylation',
-                        help='Root dir for the per-cell BisSNP 6plus2 BED')
+                        help='Root dir for the per-cell BisSNP 6plus2 BED (used when '
+                        '--bed_path is not given)')
     # Bin definition (one required)
     grp = parser.add_mutually_exclusive_group(required=True)
     grp.add_argument('--bin_size', type=int, help='Fixed bin size in bp (requires --chrom_size_filepath)')
@@ -132,13 +138,25 @@ def main():
     if args.bin_size is not None and not args.chrom_size_filepath:
         parser.error("--bin_size requires --chrom_size_filepath")
 
-    site_bed_path = os.path.join(
-        args.bed_root,
-        args.sample_prefix,
-        f'{args.sample_prefix}.cyt.filtered.sort.{args.context}.6plus2.bed',
-    )
-    if not os.path.exists(site_bed_path):
-        sys.exit(f"ERROR: site bed not found: {site_bed_path}")
+    # Resolve the site BED path. Explicit --bed_path wins; otherwise build it
+    # from prefix + context and try .bed then .bed.gz.
+    if args.bed_path:
+        site_bed_path = args.bed_path
+        if not os.path.exists(site_bed_path):
+            sys.exit(f"ERROR: site bed not found: {site_bed_path}")
+    else:
+        if not args.sample_prefix or not args.context:
+            parser.error("Either --bed_path OR (--sample_prefix AND --context) must be given.")
+        plain = os.path.join(
+            args.bed_root, args.sample_prefix,
+            f'{args.sample_prefix}.cyt.filtered.sort.{args.context}.6plus2.bed',
+        )
+        if os.path.exists(plain):
+            site_bed_path = plain
+        elif os.path.exists(plain + ".gz"):
+            site_bed_path = plain + ".gz"
+        else:
+            sys.exit(f"ERROR: site bed not found: {plain} (also tried {plain}.gz)")
 
     if args.bin_size is not None:
         chromsize = read_chrom_sizes(args.chrom_size_filepath)
