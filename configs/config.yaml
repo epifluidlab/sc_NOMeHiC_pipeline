@@ -5,6 +5,10 @@ workdir: "/gpfs/projects/b1198/epifluidlab/yoshii/sc_nomehic_cellline/gm_sc_new"
 reference: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set"
 variants: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf"
 restriction_sites: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa_DpnII.txt"
+# Bhmem `-enzymeList` arg (a BED of DpnII fragment regions). When unset, the
+# mapping rule falls back to `{reference}.DpnII.span_region.bedgraph` (the
+# legacy hg38 convention). Set explicitly for genomes that don't follow it.
+# enzyme_list: "/path/to/{genome}.DpnII.span_region.bedgraph"
 
 # software
 picard: "/gpfs/projects/b1198/epifluidlab/yoshii/software/picard/picard.jar"

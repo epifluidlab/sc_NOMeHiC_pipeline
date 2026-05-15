@@ -302,7 +302,12 @@ rule mapping:
     params:
         reference = config["reference"],
         picard = config["picard"],
-        bisulfitehic = config["bisulfitehic"]
+        bisulfitehic = config["bisulfitehic"],
+        # Bhmem -enzymeList. If config['enzyme_list'] is set use that;
+        # else fall back to the legacy {reference}.DpnII.span_region.bedgraph
+        # convention (works for the hg38 setup, fails for mm10 where the file
+        # is named differently).
+        enzyme_list = config.get("enzyme_list") or f'{config["reference"]}.DpnII.span_region.bedgraph'
     log:
         "logs/02.alignment_snakemake/realignment.{prefix}.{index}.log"
     shell: # how to load jdk here without messing up -> ok it works, wondering if this is best way to go about this
@@ -314,7 +319,7 @@ rule mapping:
         -cp "{params.bisulfitehic}/target/bisulfitehic-0.38-jar-with-dependencies.jar:{params.bisulfitehic}/jbwa/jbwa-1.0.0/jbwa.jar" \
         main.java.edu.mit.compbio.bisulfitehic.mapping.Bhmem {params.reference}.fa \
         {output.bam} {input.r1_trimmed} {input.r2_trimmed} \
-        -t {threads} -rgId {wildcards.prefix}.{wildcards.index} -rgSm scNOMeHiC -nonDirectional -pbat -buffer 1000 -enzymeList {params.reference}.DpnII.span_region.bedgraph -outputMateDiffChr \
+        -t {threads} -rgId {wildcards.prefix}.{wildcards.index} -rgSm scNOMeHiC -nonDirectional -pbat -buffer 1000 -enzymeList {params.enzyme_list} -outputMateDiffChr \
         > {log} 2>&1
         """
 

@@ -61,7 +61,16 @@ trimmed_data: "03.trimmed_fastq_snakemake"
 # derived from this).
 reference: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set"
 variants: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/Homo_sapiens_assembly38.dbsnp138.vcf"
+
+# restriction_sites: DpnII cut-site list used by rule scbam2hic (sam2juicer_new.py -f).
 restriction_sites: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/hg38/GCA_000001405.15_GRCh38_no_alt_analysis_set.fa_DpnII.txt"
+
+# enzyme_list: DpnII span-region BED used by rule mapping (Bhmem -enzymeList).
+# A DIFFERENT FILE format from restriction_sites — this one is the region
+# bedgraph the mapper consumes. If unset, falls back to
+# `{reference}.DpnII.span_region.bedgraph` (the hg38 default naming).
+# For mm10 or other genomes that don't follow that naming, set explicitly:
+# enzyme_list: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/mm10/dpnII.span_region.bedgraph"
 
 # Software paths
 picard: "/gpfs/projects/b1198/epifluidlab/yoshii/software/picard/picard.jar"
