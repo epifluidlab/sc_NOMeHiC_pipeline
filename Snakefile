@@ -134,6 +134,24 @@ shell.prefix(config.get("shell_prefix", _DEFAULT_SHELL_PREFIX))
 include: "rules/hiccluster.smk"
 #include: "rules/GCHnorm.smk"
 
+def _trinuc_autosome():
+    """Match Bis-QC.pl's autosome selection: chr21 if the reference has it,
+    else chr19 (so mm10/mouse runs work). Read from the reference .fai when
+    available; otherwise just default to chr21 for backward compat with hg38."""
+    fai = config.get("reference", "") + ".fa.fai"
+    try:
+        with open(fai) as f:
+            chroms = {line.split("\t", 1)[0] for line in f if line.strip()}
+        if "chr21" in chroms:
+            return "chr21"
+        if "chr19" in chroms:
+            return "chr19"
+    except (FileNotFoundError, OSError):
+        pass
+    return "chr21"
+
+TRINUC_AUTOSOME = _trinuc_autosome()
+
 def _resolve_bed_or_gz(template):
     """Return a snakemake input function that, at DAG-build time, picks
     `<template>.gz` if that exists on disk, else falls back to `<template>`
@@ -392,7 +410,7 @@ rule bisqc:
     output:
         # qc output
         qc_hist = "07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.hist.txt",
-        qc_chr21 = "07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.trinuc_methy.chr21.txt",
+        qc_autosome = f"07.bistools_snakemake/qc/{{prefix}}.{{index}}/{{prefix}}.{{index}}.calmd.trinuc_methy.{TRINUC_AUTOSOME}.txt",
         qc_chrM = "07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.trinuc_methy.chrM.txt",
         qc_conv_plot = "07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.WCH.bisuflite_conv_distribution_plot.pdf",
         qc_bias_plot = "07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.WCH.methy_bias_plot.pdf",
