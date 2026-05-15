@@ -21,8 +21,16 @@ Output schema (TSV with header):
 import pandas as pd
 import numpy as np
 import argparse
+import gzip
 import os
 import sys
+
+
+def _open_text(path):
+    """Open `path` for text reading, transparently handling .gz."""
+    if path.endswith(".gz"):
+        return gzip.open(path, "rt")
+    return open(path)
 
 
 AUTOSOMES_AND_SEX = [f'chr{i}' for i in range(1, 23)] + ['chrX', 'chrY']
@@ -45,10 +53,11 @@ def methyldf_from_binsize(chromsize, bin_size):
 
 
 def methyldf_from_bin_bed(path):
-    """Parse a BED file into bins. Tolerates `#` comments and header rows."""
+    """Parse a BED file into bins. Tolerates `#` comments, header rows, and
+    transparent gzip (`.bed.gz`)."""
     rows = []
     seen_ids = {}
-    with open(path) as f:
+    with _open_text(path) as f:
         for line in f:
             line = line.rstrip('\n')
             if not line or line.startswith('#') or line.startswith('track'):
