@@ -41,7 +41,7 @@ rule scbam2hic:
         calmd_bam = "04.alignment_snakemake/{prefix}.{index}.calmd.bam"
     output:
         good_reads = "06.hiccluster_snakemake/{prefix}.{index}.good_reads.bam",
-        hic = "06.hiccluster_snakemake/{prefix}.{index}.hic.txt"
+        hic = "06.hiccluster_snakemake/{prefix}.{index}.hic.txt.gz"
     threads: 5
     params:
         reference = config["reference"],
@@ -51,18 +51,20 @@ rule scbam2hic:
         "logs/06.hiccluster_snakemake/scbam2hic/scbam2hic.{prefix}.{index}.log"
     shell:
         ###generate contact matrix file for each single-cell
-        # should be fine without bisulfitehic27 environment, same dependencies
+        # sam2juicer_new.py writes Hi-C pairs to stdout; pipe through gzip
+        # to save ~5x (these files are ~500MB-1GB plain text per cell).
         """
         samtools view -bh -q 30 -f 1 -F 1804 {input.calmd_bam} > {output.good_reads} && \
         python {params.bisulfitehic}/src/python/sam2juicer_new.py \
-        -s {output.good_reads} -f {params.restriction_sites} > {output.hic} \
-        2> {log}
+        -s {output.good_reads} -f {params.restriction_sites} 2> {log} | gzip -nc > {output.hic}
         """
         # maybe use GCA restriction sites?
 
 rule hicprocess:
+    # preprocess.hg38.sh uses `zcat -f` so it transparently handles both
+    # .hic.txt.gz (current scbam2hic output) and legacy plain .hic.txt.
     input:
-        hic = "06.hiccluster_snakemake/{prefix}.{index}.hic.txt"
+        hic = "06.hiccluster_snakemake/{prefix}.{index}.hic.txt.gz"
     output:
         hic_matrix = "06.hiccluster_snakemake/{prefix}.{index}.hic_matrix.txt.gz"
     threads: 1

@@ -153,15 +153,22 @@ def _trinuc_autosome():
 TRINUC_AUTOSOME = _trinuc_autosome()
 
 def _resolve_bed_or_gz(template):
-    """Return a snakemake input function that, at DAG-build time, picks
-    `<template>.gz` if that exists on disk, else falls back to `<template>`
-    (plain .bed). Lets rules consume either pre-existing gzipped beds or
-    pipeline-produced plain beds without changing the producer rule."""
+    """Return a snakemake input function that, at DAG-build time, picks the
+    bistools .bed.gz output by default, falling back to a legacy plain .bed
+    only if that's what's actually on disk (e.g., for older runs that haven't
+    been bulk-gzip-migrated yet). `template` may end in either `.bed` or
+    `.bed.gz`; this function normalizes."""
     def _inner(wildcards):
-        plain = template.format(**dict(wildcards.items()))
-        if os.path.exists(plain + ".gz") and not os.path.exists(plain):
-            return plain + ".gz"
-        return plain
+        path = template.format(**dict(wildcards.items()))
+        gz = path if path.endswith(".gz") else path + ".gz"
+        plain = path[:-3] if path.endswith(".gz") else path
+        # Legacy on-disk plain bed → use it (lets older runs still be consumed
+        # without forcing a rerun of bistools)
+        if os.path.exists(plain) and not os.path.exists(gz):
+            return plain
+        # Default: the .gz is either already on disk or will be produced by
+        # rule bistools.
+        return gz
     return _inner
 
 def _expand_cells(template, **extra):
@@ -223,15 +230,15 @@ if not SKIP_DEMUX_TRIM:
     _rule_all_targets += _expand_cells("02.fastqc_out_snakemake/{prefix}.{index}.R2_fastqc.html")
     _rule_all_targets += _expand_cells("02.fastqc_out_snakemake/{prefix}.{index}.R2_fastqc.zip")
 # always — downstream targets, applicable in both modes
-_rule_all_targets += _expand_cells("04.alignment_snakemake/{prefix}.{index}.summary.txt")
-_rule_all_targets += _expand_cells("07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.hist.txt")
+_rule_all_targets += _expand_cells("04.alignment_snakemake/{prefix}.{index}.summary.txt.gz")
+_rule_all_targets += _expand_cells("07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.hist.txt.gz")
 _rule_all_targets += ["06.hiccluster_snakemake/hicluster_250kb_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5"]
-_rule_all_targets += _expand_cells("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.{context}.6plus2.bed",
+_rule_all_targets += _expand_cells("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.{context}.6plus2.bed.gz",
                                    context=METHYLATION_CONTEXTS)
-_rule_all_targets += _expand_cells("08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt",
+_rule_all_targets += _expand_cells("08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt.gz",
                                    context=METHYLATION_CONTEXTS, label=METHYLATION_BIN_LABELS)
 if METHYLATION_REGION_LABELS:
-    _rule_all_targets += _expand_cells("08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt",
+    _rule_all_targets += _expand_cells("08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt.gz",
                                        context=METHYLATION_CONTEXTS, label=METHYLATION_REGION_LABELS)
 
 rule all:
@@ -386,35 +393,35 @@ rule qc:
     input:
         sorted_bam = "04.alignment_snakemake/{prefix}.{index}_sorted_by_name.calmd.bam"
     output:
-        summary = "04.alignment_snakemake/{prefix}.{index}.summary.txt"
+        summary = "04.alignment_snakemake/{prefix}.{index}.summary.txt.gz"
     threads: 8
     resources:
         mem_mb=16000
     benchmark: "benchmarks/qc/qc.{prefix}.{index}_benchmark.txt"
     params:
-        bisulfitehic = config["bisulfitehic"]
+        bisulfitehic = config["bisulfitehic"],
+        summary_tmp = "04.alignment_snakemake/{prefix}.{index}.summary.txt"
     log:
         "logs/04.qc_snakemake/qc.{prefix}.{index}.log"
-    shell: # is this sort redundant?
-        # samtools sort -@ 8 -n -o ${inputfolder}/${sample}_sorted_by_name.calmd.bam ${inputfolder}/${sample}.calmd.bam
+    shell: # mh_reads_summary.v2.py writes plain text; gzip after to honor .gz output
         """
         python {params.bisulfitehic}/src/python/mh_reads_summary.v2.py \
-        --in_cram {input.sorted_bam} --out_summary {output.summary} \
+        --in_cram {input.sorted_bam} --out_summary {params.summary_tmp} \
         2> {log}
+        gzip -f {params.summary_tmp}
         """
-        # rm ${inputfolder}/${sample}_sorted_by_name.calmd.bam
 
 rule bisqc:
     input:
         calmd_bam = "04.alignment_snakemake/{prefix}.{index}.calmd.bam"
     output:
-        # qc output
-        qc_hist = "07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.hist.txt",
-        qc_autosome = f"07.bistools_snakemake/qc/{{prefix}}.{{index}}/{{prefix}}.{{index}}.calmd.trinuc_methy.{TRINUC_AUTOSOME}.txt",
-        qc_chrM = "07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.trinuc_methy.chrM.txt",
+        # qc output — .txt files post-gzipped after Bis-QC.pl finishes
+        qc_hist = "07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.hist.txt.gz",
+        qc_autosome = f"07.bistools_snakemake/qc/{{prefix}}.{{index}}/{{prefix}}.{{index}}.calmd.trinuc_methy.{TRINUC_AUTOSOME}.txt.gz",
+        qc_chrM = "07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.trinuc_methy.chrM.txt.gz",
         qc_conv_plot = "07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.WCH.bisuflite_conv_distribution_plot.pdf",
         qc_bias_plot = "07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.WCH.methy_bias_plot.pdf",
-        qc_cycle = "07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.WCH.methy.cycle.txt"
+        qc_cycle = "07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.WCH.methy.cycle.txt.gz"
     threads: 1
     resources:
         mem_mb=10000
@@ -453,24 +460,26 @@ rule bisqc:
         > {log} 2>&1
         cp {params.indir}*.txt {params.qc_outdir}
         cp {params.indir}*.pdf {params.qc_outdir}
+        gzip -f {params.qc_outdir}*.txt
         """
 
 rule bistools:
     input:
         calmd_bam = "04.alignment_snakemake/{prefix}.{index}.calmd.bam"
     output:
-        # raw VCFs + per-read methylation tables produced directly by BisulfiteGenotyper
+        # raw VCFs left uncompressed (downstream tools expect plain .vcf);
+        # per-read tables + per-base BEDs are gzipped post-hoc (text, ~5x smaller).
         cyt_vcf       = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.vcf",
         snp_vcf       = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.snp.vcf",
-        gch_per_read  = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.GCH.txt",
-        hcg_per_read  = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.HCG.txt",
+        gch_per_read  = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.GCH.txt.gz",
+        hcg_per_read  = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.HCG.txt.gz",
         # post-processed filtered + sorted VCF and per-base BEDs (consumed downstream)
         cyt_filt_vcf       = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.vcf",
-        cyt_filt_summary   = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.vcf.cpgSummary.txt",
-        gch_6plus2         = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.GCH.6plus2.bed",
-        hcg_6plus2         = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.6plus2.bed",
-        gch_strand_6plus2  = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.GCH.strand.6plus2.bed",
-        hcg_strand_6plus2  = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.strand.6plus2.bed"
+        cyt_filt_summary   = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.vcf.cpgSummary.txt.gz",
+        gch_6plus2         = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.GCH.6plus2.bed.gz",
+        hcg_6plus2         = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.6plus2.bed.gz",
+        gch_strand_6plus2  = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.GCH.strand.6plus2.bed.gz",
+        hcg_strand_6plus2  = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.strand.6plus2.bed.gz"
     threads: 1
     resources:
         mem_mb=30000
@@ -486,6 +495,8 @@ rule bistools:
     shell:
         # bissnp_nomehic_usage.pl writes outputs in cwd, named from --prefix.
         # cd into the output dir, then call with the BAM/ref/vcf as absolute paths.
+        # After the tool runs, gzip the big text outputs (.bed and per-read .txt)
+        # to save ~5x space. VCFs stay uncompressed for downstream compatibility.
         """
         mkdir -p {params.outdir}
         BAM_ABS=$(readlink -f {input.calmd_bam})
@@ -496,24 +507,27 @@ rule bistools:
             {params.bissnp_jar} \
             ${{BAM_ABS}} {params.reference}.fa {params.vcf} \
             > ${{LOG_ABS}} 2>&1
+        gzip -f *.6plus2.bed *.strand.6plus2.bed *.GCH.txt *.HCG.txt *.cpgSummary.txt 2>/dev/null || true
         """
 
 rule rerun_bistools_all:
     input:
-        _expand_cells("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.GCH.6plus2.bed")
-        + _expand_cells("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.6plus2.bed")
+        _expand_cells("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.GCH.6plus2.bed.gz")
+        + _expand_cells("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.6plus2.bed.gz")
 
 _METHYL_BED_TEMPLATE = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.{context}.6plus2.bed"
 
 rule methylation:
-    # Fixed-bin-size methylation: one TSV per cell × context × bin_size.
+    # Fixed-bin-size methylation: one TSV.GZ per cell × context × bin_size.
     # Input picks .bed.gz if it exists on disk, else .bed (plain).
     # {label} constrained to NNbp/NNkb/NNMb so this rule doesn't collide
     # with methylation_region (non-digit {label}).
+    # calcmethylation.py uses pandas to_csv which auto-gzips when the output
+    # path ends in .gz.
     input:
         bed = _resolve_bed_or_gz(_METHYL_BED_TEMPLATE)
     output:
-        methylation = "08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt"
+        methylation = "08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt.gz"
     wildcard_constraints:
         context = "GCH|HCG",
         label = r"\d+(bp|kb|Mb)"
@@ -539,13 +553,13 @@ rule methylation:
 
 
 rule methylation_region:
-    # Custom-region methylation: one TSV per cell × context × region_label.
+    # Custom-region methylation: one TSV.GZ per cell × context × region_label.
     # Input picks .bed.gz if present, else .bed. {label} constrained to
     # start with a non-digit so this rule doesn't collide with methylation.
     input:
         bed = _resolve_bed_or_gz(_METHYL_BED_TEMPLATE)
     output:
-        methylation = "08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt"
+        methylation = "08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt.gz"
     wildcard_constraints:
         context = "GCH|HCG",
         label = r"[A-Za-z][A-Za-z0-9_\-]*"
