@@ -15,6 +15,25 @@ SAMPLES = [f"{p}.{i}" for p, i in CELLS]
 
 CHROM = [str(c) for c in range(1, 23)]
 
+# ── hicluster resolutions ────────────────────────────────────────────────
+# Hicluster's imputation+embedding is run at every resolution listed here.
+# Override via config["hicluster_resolutions"] (list of int bp values).
+# Default produces both 100kb and 250kb embeddings in one invocation.
+def _res_label(bp):
+    bp = int(bp)
+    if bp >= 1_000_000 and bp % 1_000_000 == 0:
+        return f"{bp // 1_000_000}Mb"
+    if bp >= 1_000 and bp % 1_000 == 0:
+        return f"{bp // 1_000}kb"
+    return f"{bp}bp"
+
+RESOLUTIONS_BP = [int(x) for x in config.get("hicluster_resolutions", [100000, 250000])]
+RES_LABELS = [_res_label(b) for b in RESOLUTIONS_BP]
+RES_BP_BY_LABEL = dict(zip(RES_LABELS, RESOLUTIONS_BP))
+
+wildcard_constraints:
+    res_label = "|".join(RES_LABELS)
+
 # ── selected_cells_file ──────────────────────────────────────────────────
 # Hicluster's expensive imputation/embedding stage runs ONLY on cells listed
 # in this file. The file is a strict whitelist: one "{prefix}.{index}" per
@@ -129,27 +148,29 @@ rule generatematrix:
     input:
         hic_matrix = "06.hiccluster_snakemake/{prefix}.{index}.hic_matrix.txt.gz"
     output:
-        directory("06.hiccluster_snakemake/hicluster_250kb_raw_dir/{prefix}.{index}"),
-        donefile = touch("06.hiccluster_snakemake/hicluster_250kb_raw_dir/{prefix}.{index}.generatematrix.done")
+        directory("06.hiccluster_snakemake/hicluster_{res_label}_raw_dir/{prefix}.{index}"),
+        donefile = touch("06.hiccluster_snakemake/hicluster_{res_label}_raw_dir/{prefix}.{index}.generatematrix.done")
     conda:
         "../envs/schicluster_test.yaml"
     threads: 1
     params:
         reference = config["reference"],
-        outdir = "06.hiccluster_snakemake/hicluster_250kb_raw_dir/{prefix}.{index}/",
+        outdir = "06.hiccluster_snakemake/hicluster_{res_label}_raw_dir/{prefix}.{index}/",
+        rawdir = "06.hiccluster_snakemake/hicluster_{res_label}_raw_dir/",
+        res_bp = lambda w: RES_BP_BY_LABEL[w.res_label],
         shortcut = "{prefix}.{index}"
     log:
-        "logs/06.hiccluster_snakemake/generatematrix/generatematrix.{prefix}.{index}.log"
-    shell: 
+        "logs/06.hiccluster_snakemake/generatematrix/generatematrix.{prefix}.{index}.{res_label}.log"
+    shell:
         ###hicluster generatematrix-cell
         """
         hicluster generatematrix-cell \
         --infile {input.hic_matrix} --outdir {params.outdir} \
         --chrom_file {params.reference}.chrom.sizes \
-        --res 250000 --cell {params.shortcut} --chr1 1 --pos1 2 --chr2 5 --pos2 6 \
+        --res {params.res_bp} --cell {params.shortcut} --chr1 1 --pos1 2 --chr2 5 --pos2 6 \
         2> {log}
 
-        cp -r {params.outdir}* 06.hiccluster_snakemake/hicluster_250kb_raw_dir/
+        cp -r {params.outdir}* {params.rawdir}
         """
 
 # Selected-cells whitelist is parsed at module load (see SELECTED_SAMPLES
@@ -168,10 +189,10 @@ rule write_selected_cells:
 
 def _selected_imputed_hdf5s(wildcards):
     """Inputs for imputelist: every selected cell's imputed hdf5 for this
-    chromosome. Uses SELECTED_SAMPLES (parsed at DAG-build time from the
-    user's selected_cells_file) — no runtime checkpoint needed."""
+    (resolution, chromosome). Uses SELECTED_SAMPLES (parsed at DAG-build time
+    from the user's selected_cells_file) — no runtime checkpoint needed."""
     return [
-        f"06.hiccluster_snakemake/hicluster_250kb_impute_dir/chr{wildcards.chr}/"
+        f"06.hiccluster_snakemake/hicluster_{wildcards.res_label}_impute_dir/chr{wildcards.chr}/"
         f"{sample}_chr{wildcards.chr}_pad1_std1_rp0.5_sqrtvc.hdf5"
         for sample in SELECTED_SAMPLES
     ]
@@ -180,26 +201,27 @@ def _selected_imputed_hdf5s(wildcards):
 rule imputecell:
     input:
         hic_matrix = "06.hiccluster_snakemake/{sample}.hic_matrix.txt.gz",
-        matrixdone = "06.hiccluster_snakemake/hicluster_250kb_raw_dir/{sample}.generatematrix.done"
+        matrixdone = "06.hiccluster_snakemake/hicluster_{res_label}_raw_dir/{sample}.generatematrix.done"
     output:
-        imputed_cells = "06.hiccluster_snakemake/hicluster_250kb_impute_dir/chr{chr}/{sample}_chr{chr}_pad1_std1_rp0.5_sqrtvc.hdf5"
+        imputed_cells = "06.hiccluster_snakemake/hicluster_{res_label}_impute_dir/chr{chr}/{sample}_chr{chr}_pad1_std1_rp0.5_sqrtvc.hdf5"
     conda:
         "../envs/schicluster_test.yaml"
     threads: 1
     params:
         reference = config["reference"],
-        indir = "06.hiccluster_snakemake/hicluster_250kb_raw_dir/chr{chr}/",
-        outdir = "06.hiccluster_snakemake/hicluster_250kb_impute_dir/chr{chr}/",
+        indir = "06.hiccluster_snakemake/hicluster_{res_label}_raw_dir/chr{chr}/",
+        outdir = "06.hiccluster_snakemake/hicluster_{res_label}_impute_dir/chr{chr}/",
+        res_bp = lambda w: RES_BP_BY_LABEL[w.res_label],
         shortcut = "{sample}"
     log:
-        "logs/06.hiccluster_snakemake/imputecell/imputecell_{sample}/imputecell.{sample}.chr{chr}.log"
+        "logs/06.hiccluster_snakemake/imputecell/imputecell_{sample}/imputecell.{sample}.{res_label}.chr{chr}.log"
     shell:
         ###hicluster impute-cell
         """
         hicluster impute-cell \
         --indir {params.indir} \
         --outdir {params.outdir} \
-        --cell {params.shortcut} --chrom chr{wildcards.chr} --res 250000 \
+        --cell {params.shortcut} --chrom chr{wildcards.chr} --res {params.res_bp} \
         --chrom_file {params.reference}.chrom.sizes 2> {log}
         """
 
@@ -207,12 +229,12 @@ rule imputelist:
     input:
         _selected_imputed_hdf5s
     output:
-        file_list = "06.hiccluster_snakemake/hicluster_250kb_chr{chr}_impute_file_list.txt"
+        file_list = "06.hiccluster_snakemake/hicluster_{res_label}_chr{chr}_impute_file_list.txt"
     threads: 1
     log:
-        "logs/06.hiccluster_snakemake/imputelist/imputelist.chr{chr}.log"
+        "logs/06.hiccluster_snakemake/imputelist/imputelist.{res_label}.chr{chr}.log"
     run:
-        # Write the (DAG-build-time) list of imputed hdf5s for this chrom.
+        # Write the (DAG-build-time) list of imputed hdf5s for this (res, chrom).
         # Snakemake guarantees they all exist by the time this rule runs.
         with open(output.file_list, "w") as fh:
             for p in input:
@@ -220,40 +242,41 @@ rule imputelist:
 
 rule concatcells:
     input:
-        file_list = "06.hiccluster_snakemake/hicluster_250kb_chr{chr}_impute_file_list.txt"
+        file_list = "06.hiccluster_snakemake/hicluster_{res_label}_chr{chr}_impute_file_list.txt"
     output:
-        npz = "06.hiccluster_snakemake/hicluster_250kb_embed_dir/pad1_std1_rp0.5_sqrtvc_chr{chr}.npz",
-        svd50_npy = "06.hiccluster_snakemake/hicluster_250kb_embed_dir/pad1_std1_rp0.5_sqrtvc_chr{chr}.svd50.npy"
+        npz = "06.hiccluster_snakemake/hicluster_{res_label}_embed_dir/pad1_std1_rp0.5_sqrtvc_chr{chr}.npz",
+        svd50_npy = "06.hiccluster_snakemake/hicluster_{res_label}_embed_dir/pad1_std1_rp0.5_sqrtvc_chr{chr}.svd50.npy"
     conda:
         "../envs/schicluster_test.yaml"
     threads: 1
     params:
-        outprefix = "06.hiccluster_snakemake/hicluster_250kb_embed_dir/pad1_std1_rp0.5_sqrtvc_chr{chr}"
+        outprefix = "06.hiccluster_snakemake/hicluster_{res_label}_embed_dir/pad1_std1_rp0.5_sqrtvc_chr{chr}",
+        res_bp = lambda w: RES_BP_BY_LABEL[w.res_label]
     shell:
-        ###concatnate to form a matrix
+        ###concatenate to form a matrix
         # concatenate cells for each chromosome
         """
         hicluster embed-concatcell-chr \
         --cell_list {input.file_list} \
-        --outprefix {params.outprefix} --res 250000
+        --outprefix {params.outprefix} --res {params.res_bp}
         """
 
 rule mergechrom:
     input:
-        expand("06.hiccluster_snakemake/hicluster_250kb_embed_dir/pad1_std1_rp0.5_sqrtvc_chr{chr}.svd50.npy", chr = CHROM)
+        expand("06.hiccluster_snakemake/hicluster_{{res_label}}_embed_dir/pad1_std1_rp0.5_sqrtvc_chr{chr}.svd50.npy", chr = CHROM)
     output:
-        embed_file_list = "06.hiccluster_snakemake/hicluster_250kb_embed_file_list.txt",
-        all_merged = "06.hiccluster_snakemake/hicluster_250kb_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5"
+        embed_file_list = "06.hiccluster_snakemake/hicluster_{res_label}_embed_file_list.txt",
+        all_merged = "06.hiccluster_snakemake/hicluster_{res_label}_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5"
     conda:
         "../envs/schicluster_test.yaml"
     threads: 1
     params:
-        outprefix = "06.hiccluster_snakemake/hicluster_250kb_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc",
-        concat_files = "06.hiccluster_snakemake/hicluster_250kb_embed_dir/pad1_std1_rp0.5_sqrtvc_*npy"
+        outprefix = "06.hiccluster_snakemake/hicluster_{res_label}_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc",
+        concat_files = "06.hiccluster_snakemake/hicluster_{res_label}_embed_dir/pad1_std1_rp0.5_sqrtvc_*npy"
     log:
-        "logs/06.hiccluster_snakemake/mergechrom/mergechrom.log"
+        "logs/06.hiccluster_snakemake/mergechrom/mergechrom.{res_label}.log"
     shell:
-        # merge chromosomes (hicluster_100kb_embed_dir/pad1_std1_rp0.5_sqrtvc.svd50.hdf5)
+        # merge chromosomes per resolution
         """
         ls {params.concat_files} > {output.embed_file_list} 2> {log}
         hicluster embed-mergechr --embed_list {output.embed_file_list} --outprefix {params.outprefix} 2>> {log}
@@ -270,5 +293,8 @@ rule mergechrom:
 # (and skips anything already done).
 rule hicluster_selected:
     input:
-        "06.hiccluster_snakemake/hicluster_250kb_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5",
+        expand(
+            "06.hiccluster_snakemake/hicluster_{res_label}_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5",
+            res_label=RES_LABELS,
+        ),
         "06.hiccluster_snakemake/hicluster_check/selected_cells.txt"

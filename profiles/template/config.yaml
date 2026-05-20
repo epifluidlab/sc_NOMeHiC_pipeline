@@ -103,6 +103,16 @@ hg38_250kb_no_dark_regions: "/gpfs/projects/b1198/epifluidlab/yoshii/reference/h
 #   - Leave unset to skip hicluster entirely.
 # selected_cells_file: "selected_cells.txt"
 
+# Hicluster bin resolutions (bp). When `hicluster_selected` is invoked the
+# pipeline runs generatematrix → imputecell → concatcells → mergechrom at
+# each listed resolution in parallel. Each resolution produces its own
+# embedding under `06.hiccluster_snakemake/hicluster_<label>_embed_dir/`
+# where <label> is rendered Mb/kb/bp (e.g. 100000 → 100kb, 250000 → 250kb).
+# Default is both 100kb and 250kb. Override here if you want a different set.
+# hicluster_resolutions:
+#   - 100000
+#   - 250000
+
 # ─── 3. TUNING ────────────────────────────────────────────────────────────
 
 # Methylation per-bin output. Produces one TSV per (cell, context, bin_def)
