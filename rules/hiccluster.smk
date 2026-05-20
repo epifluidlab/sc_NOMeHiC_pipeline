@@ -35,7 +35,15 @@ def _load_selected_samples():
     """Strict parse of selected_cells_file → list of "prefix.index" strings.
     Returns [] when the config option is unset. Fails loudly on a missing
     file or unknown cell names so DAG construction never silently drops
-    work the user asked for."""
+    work the user asked for.
+
+    A whitelisted cell is considered valid if EITHER:
+      (a) it's in CELLS (trimmed fastq pair present → full pipeline can run), or
+      (b) its `04.alignment_snakemake/{cell}.calmd.bam` exists on disk
+          (hicluster's chain starts from the BAM, so the trimmed fastq isn't
+          strictly required — useful when /scratch was purged but BAMs
+          survive in the project workdir).
+    A cell that satisfies neither is reported as unknown."""
     if not SELECTED_CELLS_FILE:
         return []
     if not os.path.exists(SELECTED_CELLS_FILE):
@@ -50,11 +58,18 @@ def _load_selected_samples():
                 continue
             samples.append(line)
     cells_set = set(SAMPLES)
-    unknown = [s for s in samples if s not in cells_set]
+    unknown = []
+    for s in samples:
+        if s in cells_set:
+            continue
+        if os.path.exists(f"04.alignment_snakemake/{s}.calmd.bam"):
+            continue
+        unknown.append(s)
     if unknown:
         raise ValueError(
             f"selected_cells_file ({SELECTED_CELLS_FILE}) lists "
-            f"{len(unknown)} cell(s) not in CELLS (no trimmed fastq pair). "
+            f"{len(unknown)} cell(s) with no upstream inputs available "
+            f"(neither a trimmed fastq pair nor a .calmd.bam). "
             f"First few: {unknown[:5]}"
         )
     if not samples:
