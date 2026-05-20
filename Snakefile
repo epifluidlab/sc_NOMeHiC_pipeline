@@ -232,7 +232,9 @@ if not SKIP_DEMUX_TRIM:
 # always — downstream targets, applicable in both modes
 _rule_all_targets += _expand_cells("04.alignment_snakemake/{prefix}.{index}.summary.txt.gz")
 _rule_all_targets += _expand_cells("07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.hist.txt.gz")
-_rule_all_targets += ["06.hiccluster_snakemake/hicluster_250kb_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5"]
+# hicluster intentionally NOT in default `rule all` — it runs only when the
+# user provides `selected_cells_file` in config and invokes the
+# `hicluster_selected` rule explicitly. See rules/hiccluster.smk.
 _rule_all_targets += _expand_cells("07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.{context}.6plus2.bed.gz",
                                    context=METHYLATION_CONTEXTS)
 _rule_all_targets += _expand_cells("08.methylation_snakemake/{prefix}.{index}.{context}.{label}_methylation.txt.gz",

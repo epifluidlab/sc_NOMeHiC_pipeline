@@ -13,28 +13,59 @@ workdir: config["workdir"]
 # carry the (prefix, index) pairs that actually exist on disk.
 SAMPLES = [f"{p}.{i}" for p, i in CELLS]
 
-# CHROM = [str(c) for c in range(1, 23)] + ['EBV', 'M', 'Un', 'X', 'Y']
 CHROM = [str(c) for c in range(1, 23)]
 
-def schic_exclude_missing_chrom():
-    schic_passed = []
-    schic_excluded = []
-    for sample in SAMPLES:
-        chrom_exists_sum = 0
-        for chr in CHROM:
-            if os.path.exists(f"06.hiccluster_snakemake/hicluster_250kb_raw_dir/chr{chr}/{sample}_chr{chr}.txt"):
-                chrom_exists_sum+=1
-        if chrom_exists_sum==len(CHROM):
-            schic_passed.append(sample)
-        else:
-            schic_excluded.append(sample)
-    return schic_passed, schic_excluded
+# ── selected_cells_file ──────────────────────────────────────────────────
+# Hicluster's expensive imputation/embedding stage runs ONLY on cells listed
+# in this file. The file is a strict whitelist: one "{prefix}.{index}" per
+# line. Lines blank or starting with `#` are skipped.
+#
+# When the user invokes `snakemake hicluster_selected`, this list controls
+# which cells participate in concatcells/mergechrom. Cells named here that
+# aren't in the discovered CELLS pool (no trimmed fastq pair) trigger a hard
+# error at DAG-build time.
+#
+# Cells that ARE in CELLS but lack upstream outputs (calmd.bam, hic.txt.gz,
+# etc.) are NOT silently skipped — snakemake's normal dependency cascade
+# triggers the upstream rules to run for them.
+SELECTED_CELLS_FILE = config.get("selected_cells_file")
 
-# keep commented out if you want to call it from the main snakefile
-# rule all:
-#     input:
-#         # mergechrom
-#         "06.hiccluster_snakemake/hicluster_250kb_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5"
+
+def _load_selected_samples():
+    """Strict parse of selected_cells_file → list of "prefix.index" strings.
+    Returns [] when the config option is unset. Fails loudly on a missing
+    file or unknown cell names so DAG construction never silently drops
+    work the user asked for."""
+    if not SELECTED_CELLS_FILE:
+        return []
+    if not os.path.exists(SELECTED_CELLS_FILE):
+        raise FileNotFoundError(
+            f"selected_cells_file does not exist: {SELECTED_CELLS_FILE}"
+        )
+    with open(SELECTED_CELLS_FILE) as fh:
+        samples = []
+        for raw in fh:
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            samples.append(line)
+    cells_set = set(SAMPLES)
+    unknown = [s for s in samples if s not in cells_set]
+    if unknown:
+        raise ValueError(
+            f"selected_cells_file ({SELECTED_CELLS_FILE}) lists "
+            f"{len(unknown)} cell(s) not in CELLS (no trimmed fastq pair). "
+            f"First few: {unknown[:5]}"
+        )
+    if not samples:
+        raise ValueError(
+            f"selected_cells_file ({SELECTED_CELLS_FILE}) is empty or "
+            f"contains only comments."
+        )
+    return samples
+
+
+SELECTED_SAMPLES = _load_selected_samples()
 
 rule scbam2hic:
     input:
@@ -106,39 +137,35 @@ rule generatematrix:
         cp -r {params.outdir}* 06.hiccluster_snakemake/hicluster_250kb_raw_dir/
         """
 
-checkpoint excludemissing:
-    input:
-        [f"06.hiccluster_snakemake/hicluster_250kb_raw_dir/{p}.{i}.generatematrix.done" for p, i in CELLS]
+# Selected-cells whitelist is parsed at module load (see SELECTED_SAMPLES
+# above); we materialize it to disk so it shows up as a real Snakemake target
+# and downstream rules have a clean file-based dependency, but the contents
+# come from the user-provided config file, not from a runtime check.
+rule write_selected_cells:
     output:
-        checkpoint_done = touch("06.hiccluster_snakemake/hicluster_check/check_missing_chrom.done"),
-        passed = "06.hiccluster_snakemake/hicluster_check/passed_cells.txt",
-        excluded = "06.hiccluster_snakemake/hicluster_check/excluded_cells.txt"
+        selected = "06.hiccluster_snakemake/hicluster_check/selected_cells.txt"
     run:
-        PASSED, EXCLUDED = schic_exclude_missing_chrom()
+        os.makedirs(os.path.dirname(output.selected), exist_ok=True)
+        with open(output.selected, "w") as fh:
+            for s in SELECTED_SAMPLES:
+                fh.write(s + "\n")
 
-        # write to file
-        with open("06.hiccluster_snakemake/hicluster_check/passed_cells.txt", "w") as f:
-            for cell in PASSED:
-                f.write(cell + "\n")
 
-        # write to file CHANGE THIS TO THE NAME THAT'S NEEDED
-        with open("06.hiccluster_snakemake/hicluster_check/excluded_cells.txt", "w") as f:
-            for cell in EXCLUDED:
-                f.write(cell + "\n")
-        
-        print("Excluded cells:", EXCLUDED)
+def _selected_imputed_hdf5s(wildcards):
+    """Inputs for imputelist: every selected cell's imputed hdf5 for this
+    chromosome. Uses SELECTED_SAMPLES (parsed at DAG-build time from the
+    user's selected_cells_file) — no runtime checkpoint needed."""
+    return [
+        f"06.hiccluster_snakemake/hicluster_250kb_impute_dir/chr{wildcards.chr}/"
+        f"{sample}_chr{wildcards.chr}_pad1_std1_rp0.5_sqrtvc.hdf5"
+        for sample in SELECTED_SAMPLES
+    ]
 
-def get_passed_samples(wildcards):
-    checkpoint_output = checkpoints.excludemissing.get().output.passed
-    with open(checkpoint_output) as f:
-        passed_samples = [line.strip() for line in f]
-    return passed_samples
 
-rule imputecell: # USE DIFFERENT WILDCARDS FOR THIS RULE
+rule imputecell:
     input:
         hic_matrix = "06.hiccluster_snakemake/{sample}.hic_matrix.txt.gz",
-        matrixdone = "06.hiccluster_snakemake/hicluster_250kb_raw_dir/{sample}.generatematrix.done",
-        checkpoint_done = "06.hiccluster_snakemake/hicluster_check/check_missing_chrom.done"
+        matrixdone = "06.hiccluster_snakemake/hicluster_250kb_raw_dir/{sample}.generatematrix.done"
     output:
         imputed_cells = "06.hiccluster_snakemake/hicluster_250kb_impute_dir/chr{chr}/{sample}_chr{chr}_pad1_std1_rp0.5_sqrtvc.hdf5"
     conda:
@@ -163,23 +190,18 @@ rule imputecell: # USE DIFFERENT WILDCARDS FOR THIS RULE
 
 rule imputelist:
     input:
-        lambda wildcards: [
-            f"06.hiccluster_snakemake/hicluster_250kb_impute_dir/chr{wildcards.chr}/{sample}_chr{wildcards.chr}_pad1_std1_rp0.5_sqrtvc.hdf5"
-            for sample in [line.strip() for line in open(checkpoints.excludemissing.get().output.passed)]
-        ]
+        _selected_imputed_hdf5s
     output:
         file_list = "06.hiccluster_snakemake/hicluster_250kb_chr{chr}_impute_file_list.txt"
-    conda:
-        "../envs/schicluster_test.yaml"
     threads: 1
-    params:
-        imputed_cells = "06.hiccluster_snakemake/hicluster_250kb_impute_dir/chr{chr}/*chr{chr}_pad1_std1_rp0.5_sqrtvc.hdf5"
     log:
         "logs/06.hiccluster_snakemake/imputelist/imputelist.chr{chr}.log"
-    shell:
-        """
-        ls {params.imputed_cells} > {output.file_list} 2> {log}
-        """
+    run:
+        # Write the (DAG-build-time) list of imputed hdf5s for this chrom.
+        # Snakemake guarantees they all exist by the time this rule runs.
+        with open(output.file_list, "w") as fh:
+            for p in input:
+                fh.write(p + "\n")
 
 rule concatcells:
     input:
@@ -221,3 +243,17 @@ rule mergechrom:
         ls {params.concat_files} > {output.embed_file_list} 2> {log}
         hicluster embed-mergechr --embed_list {output.embed_file_list} --outprefix {params.outprefix} 2>> {log}
         """
+
+
+# Friendly entry point. After populating `selected_cells_file` in config,
+# trigger the whole hicluster cascade for the selected cells with:
+#
+#     snakemake hicluster_selected --configfile config.yaml --profile slurm
+#
+# Snakemake then runs scbam2hic → hicprocess → generatematrix → imputecell
+# → imputelist → concatcells → mergechrom for every cell in the whitelist
+# (and skips anything already done).
+rule hicluster_selected:
+    input:
+        "06.hiccluster_snakemake/hicluster_250kb_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5",
+        "06.hiccluster_snakemake/hicluster_check/selected_cells.txt"
