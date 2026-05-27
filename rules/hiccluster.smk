@@ -13,7 +13,30 @@ workdir: config["workdir"]
 # carry the (prefix, index) pairs that actually exist on disk.
 SAMPLES = [f"{p}.{i}" for p, i in CELLS]
 
-CHROM = [str(c) for c in range(1, 23)]
+# ── autosome list ────────────────────────────────────────────────────────
+# hicluster's per-chromosome imputation/embedding runs over every chromosome
+# listed here. Override via config["hicluster_chromosomes"] (list of strings
+# without "chr" prefix, e.g. ["1", "2", ..., "19"]). Default: auto-detect
+# autosomes from {reference}.chrom.sizes — picks every "chr<N>" with integer N,
+# so mm10 produces 1..19 and hg38 produces 1..22 without any config change.
+def _autosomes_from_chrom_sizes(path):
+    import re
+    autosomes = set()
+    with open(path) as fh:
+        for line in fh:
+            chrom = line.split('\t', 1)[0].strip()
+            m = re.match(r'^chr([0-9]+)$', chrom)
+            if m:
+                autosomes.add(int(m.group(1)))
+    if not autosomes:
+        raise ValueError(f"No 'chr<N>' autosomes found in {path}")
+    return [str(i) for i in sorted(autosomes)]
+
+_CHROM_CFG = config.get("hicluster_chromosomes")
+if _CHROM_CFG:
+    CHROM = [str(c) for c in _CHROM_CFG]
+else:
+    CHROM = _autosomes_from_chrom_sizes(config["reference"] + ".chrom.sizes")
 
 # ── hicluster resolutions ────────────────────────────────────────────────
 # Hicluster's imputation+embedding is run at every resolution listed here.
