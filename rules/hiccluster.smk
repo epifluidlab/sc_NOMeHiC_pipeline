@@ -54,6 +54,17 @@ RESOLUTIONS_BP = [int(x) for x in config.get("hicluster_resolutions", [100000, 2
 RES_LABELS = [_res_label(b) for b in RESOLUTIONS_BP]
 RES_BP_BY_LABEL = dict(zip(RES_LABELS, RESOLUTIONS_BP))
 
+# ── cell-set label ─────────────────────────────────────────────────────────
+# Optional suffix that separates the CELL-SET-DEPENDENT combining outputs
+# (imputelist file_list, concatcells/mergechrom embed_dir, selected_cells.txt)
+# of runs that share the SAME workdir but use different cell whitelists. The
+# per-cell outputs (scbam2hic, hicprocess, generatematrix raw_dir, imputecell
+# hdf5s) are keyed by cell name and stay UNsuffixed so they're reused across
+# cell-sets. Empty (default) -> current unsuffixed paths (backward compatible).
+# Set via config["cellset_label"] (e.g. "all3", "batch23").
+CELLSET_LABEL = str(config.get("cellset_label", "") or "")
+_CS = f"_{CELLSET_LABEL}" if CELLSET_LABEL else ""
+
 wildcard_constraints:
     res_label = "|".join(RES_LABELS)
 
@@ -130,7 +141,7 @@ rule scbam2hic:
     output:
         good_reads = "06.hiccluster_snakemake/{prefix}.{index}.good_reads.bam",
         hic = "06.hiccluster_snakemake/{prefix}.{index}.hic.txt.gz"
-    threads: 5
+    threads: 16
     params:
         reference = config["reference"],
         restriction_sites = config["restriction_sites"],
@@ -142,7 +153,7 @@ rule scbam2hic:
         # sam2juicer_new.py writes Hi-C pairs to stdout; pipe through gzip
         # to save ~5x (these files are ~500MB-1GB plain text per cell).
         """
-        samtools view -bh -q 30 -f 1 -F 1804 {input.calmd_bam} > {output.good_reads} && \
+        samtools view -@ {threads} -bh -q 30 -f 1 -F 1804 {input.calmd_bam} > {output.good_reads} && \
         python {params.bisulfitehic}/src/python/sam2juicer_new.py \
         -s {output.good_reads} -f {params.restriction_sites} 2> {log} | gzip -nc > {output.hic}
         """
@@ -202,7 +213,7 @@ rule generatematrix:
 # come from the user-provided config file, not from a runtime check.
 rule write_selected_cells:
     output:
-        selected = "06.hiccluster_snakemake/hicluster_check/selected_cells.txt"
+        selected = f"06.hiccluster_snakemake/hicluster_check/selected_cells{_CS}.txt"
     run:
         os.makedirs(os.path.dirname(output.selected), exist_ok=True)
         with open(output.selected, "w") as fh:
@@ -210,15 +221,35 @@ rule write_selected_cells:
                 fh.write(s + "\n")
 
 
-def _selected_imputed_hdf5s(wildcards):
-    """Inputs for imputelist: every selected cell's imputed hdf5 for this
-    (resolution, chromosome). Uses SELECTED_SAMPLES (parsed at DAG-build time
-    from the user's selected_cells_file) — no runtime checkpoint needed."""
+def _selected_imputed_hdf5_paths(wildcards):
+    """Per-cell imputed hdf5 paths for this (res, chrom). Pure path-list helper
+    — used both as DAG inputs (default) and as runtime params (when
+    concat_from_existing_imputes is set)."""
     return [
         f"06.hiccluster_snakemake/hicluster_{wildcards.res_label}_impute_dir/chr{wildcards.chr}/"
         f"{sample}_chr{wildcards.chr}_pad1_std1_rp0.5_sqrtvc.hdf5"
         for sample in SELECTED_SAMPLES
     ]
+
+
+# Config flag: when True, the imputelist rule treats the per-cell hdf5s as
+# already-on-disk inputs (not as DAG-tracked outputs), bypassing the slow
+# imputecell rule entirely. Used to re-run concatcells + mergechrom for a new
+# cell list when the per-cell impute hdf5s already exist (e.g., a previous run
+# at a different resolution / cell whitelist).
+_CONCAT_FROM_EXISTING = bool(config.get("concat_from_existing_imputes", False))
+
+
+def _selected_imputed_hdf5s(wildcards):
+    """Inputs for imputelist: every selected cell's imputed hdf5 for this
+    (resolution, chromosome). Uses SELECTED_SAMPLES (parsed at DAG-build time
+    from the user's selected_cells_file) — no runtime checkpoint needed.
+
+    When config.concat_from_existing_imputes is set, returns [] so snakemake's
+    DAG won't try to (re-)build the hdf5s — caller asserts they already exist."""
+    if _CONCAT_FROM_EXISTING:
+        return []
+    return _selected_imputed_hdf5_paths(wildcards)
 
 
 rule imputecell:
@@ -252,33 +283,57 @@ rule imputelist:
     input:
         _selected_imputed_hdf5s
     output:
-        file_list = "06.hiccluster_snakemake/hicluster_{res_label}_chr{chr}_impute_file_list.txt"
+        file_list = f"06.hiccluster_snakemake/hicluster_{{res_label}}_chr{{chr}}_impute_file_list{_CS}.txt"
     threads: 1
+    params:
+        # ALWAYS the per-cell hdf5 paths (regardless of concat_from_existing_imputes).
+        # In default mode, these match `input` 1-for-1. In concat-only mode, `input`
+        # is empty but params.paths still has the full path list to write.
+        paths = _selected_imputed_hdf5_paths,
     log:
         "logs/06.hiccluster_snakemake/imputelist/imputelist.{res_label}.chr{chr}.log"
     run:
         # Write the (DAG-build-time) list of imputed hdf5s for this (res, chrom).
-        # Snakemake guarantees they all exist by the time this rule runs.
+        # Default mode: snakemake's DAG already guaranteed each path exists.
+        # concat_from_existing_imputes mode: caller asserts they exist; we
+        # fail loudly here if any are missing rather than concatcells later.
+        import os
+        missing = [p for p in params.paths if not os.path.exists(p)]
+        if missing:
+            raise FileNotFoundError(
+                f"imputelist ({wildcards.res_label} chr{wildcards.chr}): "
+                f"{len(missing)} of {len(params.paths)} expected per-cell hdf5s "
+                f"missing. First few: {missing[:5]}"
+            )
         with open(output.file_list, "w") as fh:
-            for p in input:
+            for p in params.paths:
                 fh.write(p + "\n")
 
 rule concatcells:
     input:
-        file_list = "06.hiccluster_snakemake/hicluster_{res_label}_chr{chr}_impute_file_list.txt"
+        file_list = f"06.hiccluster_snakemake/hicluster_{{res_label}}_chr{{chr}}_impute_file_list{_CS}.txt"
     output:
-        npz = "06.hiccluster_snakemake/hicluster_{res_label}_embed_dir/pad1_std1_rp0.5_sqrtvc_chr{chr}.npz",
-        svd50_npy = "06.hiccluster_snakemake/hicluster_{res_label}_embed_dir/pad1_std1_rp0.5_sqrtvc_chr{chr}.svd50.npy"
+        npz = f"06.hiccluster_snakemake/hicluster_{{res_label}}_embed_dir{_CS}/pad1_std1_rp0.5_sqrtvc_chr{{chr}}.npz",
+        svd50_npy = f"06.hiccluster_snakemake/hicluster_{{res_label}}_embed_dir{_CS}/pad1_std1_rp0.5_sqrtvc_chr{{chr}}.svd50.npy"
     conda:
         "../envs/schicluster_test.yaml"
-    threads: 1
+    threads: 16
+    # Concatenating 1000+ cells of a large chromosome at 100kb resolution then
+    # running SVD is memory-heavy; the snakemake-profile default (1000 MB)
+    # was triggering OOM kills on chr10 100kb.
+    resources:
+        mem_mb=128000
     params:
-        outprefix = "06.hiccluster_snakemake/hicluster_{res_label}_embed_dir/pad1_std1_rp0.5_sqrtvc_chr{chr}",
+        outprefix = f"06.hiccluster_snakemake/hicluster_{{res_label}}_embed_dir{_CS}/pad1_std1_rp0.5_sqrtvc_chr{{chr}}",
         res_bp = lambda w: RES_BP_BY_LABEL[w.res_label]
     shell:
         ###concatenate to form a matrix
         # concatenate cells for each chromosome
         """
+        export OMP_NUM_THREADS={threads}
+        export MKL_NUM_THREADS={threads}
+        export OPENBLAS_NUM_THREADS={threads}
+        export NUMEXPR_NUM_THREADS={threads}
         hicluster embed-concatcell-chr \
         --cell_list {input.file_list} \
         --outprefix {params.outprefix} --res {params.res_bp}
@@ -286,16 +341,16 @@ rule concatcells:
 
 rule mergechrom:
     input:
-        expand("06.hiccluster_snakemake/hicluster_{{res_label}}_embed_dir/pad1_std1_rp0.5_sqrtvc_chr{chr}.svd50.npy", chr = CHROM)
+        expand(f"06.hiccluster_snakemake/hicluster_{{{{res_label}}}}_embed_dir{_CS}/pad1_std1_rp0.5_sqrtvc_chr{{chr}}.svd50.npy", chr = CHROM)
     output:
-        embed_file_list = "06.hiccluster_snakemake/hicluster_{res_label}_embed_file_list.txt",
-        all_merged = "06.hiccluster_snakemake/hicluster_{res_label}_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5"
+        embed_file_list = f"06.hiccluster_snakemake/hicluster_{{res_label}}_embed_file_list{_CS}.txt",
+        all_merged = f"06.hiccluster_snakemake/hicluster_{{res_label}}_embed_dir{_CS}/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5"
     conda:
         "../envs/schicluster_test.yaml"
     threads: 1
     params:
-        outprefix = "06.hiccluster_snakemake/hicluster_{res_label}_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc",
-        concat_files = "06.hiccluster_snakemake/hicluster_{res_label}_embed_dir/pad1_std1_rp0.5_sqrtvc_*npy"
+        outprefix = f"06.hiccluster_snakemake/hicluster_{{res_label}}_embed_dir{_CS}/all_merged.pad1_std1_rp0.5_sqrtvc",
+        concat_files = f"06.hiccluster_snakemake/hicluster_{{res_label}}_embed_dir{_CS}/pad1_std1_rp0.5_sqrtvc_*npy"
     log:
         "logs/06.hiccluster_snakemake/mergechrom/mergechrom.{res_label}.log"
     shell:
@@ -317,7 +372,7 @@ rule mergechrom:
 rule hicluster_selected:
     input:
         expand(
-            "06.hiccluster_snakemake/hicluster_{res_label}_embed_dir/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5",
+            f"06.hiccluster_snakemake/hicluster_{{res_label}}_embed_dir{_CS}/all_merged.pad1_std1_rp0.5_sqrtvc.svd20.hdf5",
             res_label=RES_LABELS,
         ),
-        "06.hiccluster_snakemake/hicluster_check/selected_cells.txt"
+        f"06.hiccluster_snakemake/hicluster_check/selected_cells{_CS}.txt"
