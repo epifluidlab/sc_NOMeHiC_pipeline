@@ -44,7 +44,7 @@ rule bed2bigwig:
         m_count_bw = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.cyt.filtered.sort.GCH.methy_count.bw"
     threads: 1
     resources:
-        mem_mb = 16000
+        mem_mb = 128000
     params:
         out_prefix = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.cyt.filtered.sort.GCH",
         scripts = config["scripts"]
@@ -70,7 +70,7 @@ rule bw2tab:
         # coverage_250kb_tab = "09.GCHnorm_snakemake/bed2bigwig/{prefix}.{index}.cyt.filtered.sort.GCH.cov.250kb_interval.tab"
     threads: 4
     resources:
-        mem_mb=32000
+        mem_mb=128000
     params:
         hg38_5kb = config["hg38_5kb_no_dark_regions"],
         # hg38_250kb = config["hg38_250kb_no_dark_regions"]
@@ -113,7 +113,7 @@ rule methytab2pbetabinom:
         # pbetabinom_250kb = "09.GCHnorm_snakemake/methytab2pbetabinom/{prefix}.{index}.cyt.filtered.sort.GCH.250kb_interval.pbetabinom.txt"
     threads: 1
     resources:
-        mem_mb=16000
+        mem_mb=128000
     params:
         wd = config["workdir"],
         scripts = config["scripts"]

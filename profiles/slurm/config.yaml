@@ -13,3 +13,5 @@ default-resources:
   slurm_partition: "genomics"
   slurm_account: "b1042"
   runtime: 2880
+  mem_mb: 128000
+cores: 16

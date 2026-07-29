@@ -274,9 +274,9 @@ rule demultiplex_fastqc_trim: # combination step to trigger re-runs if failed
         r1_out_report  = f"{TRIMMED_DATA}/{{prefix}}.{{index}}.R1.fastq.gz_trimming_report.txt",
         r2_out_trimmed = f"{TRIMMED_DATA}/{{prefix}}.{{index}}.R2_val_2.fq.gz",
         r2_out_report  = f"{TRIMMED_DATA}/{{prefix}}.{{index}}.R2.fastq.gz_trimming_report.txt"
-    threads: 8
+    threads: 16
     resources:
-        mem_mb=32000
+        mem_mb=128000
     benchmark: "benchmarks/00.demultiplex/demul.{prefix}.{index}_benchmark.txt"
     params:
         out_prefix = "01.demul_fastq_snakemake/{prefix}",
@@ -311,7 +311,7 @@ rule demultiplex_fastqc_trim: # combination step to trigger re-runs if failed
         --three_prime_clip_R1 {params.three_prime_clip_r1} \
         --three_prime_clip_R2 {params.three_prime_clip_r2} \
         -j {threads} \
-        -o {params.outdir_fq} --gzip --fastqc --fastqc_args "--outdir {params.outdir} -t 32" {output.r1_demul} {output.r2_demul} \
+        -o {params.outdir_fq} --gzip --fastqc --fastqc_args "--outdir {params.outdir} -t {threads}" {output.r1_demul} {output.r2_demul} \
         2> {log}
         echo "Trimming done"
         """
@@ -322,9 +322,9 @@ rule mapping:
         r2_trimmed = f"{TRIMMED_DATA}/{{prefix}}.{{index}}.R2_val_2.fq.gz"
     output:
         bam = "04.alignment_snakemake/{prefix}.{index}.bam"
-    threads: 8
+    threads: 16
     resources:
-        mem_mb=16000
+        mem_mb=128000
     benchmark: "benchmarks/02.mapping/alignment.{prefix}.{index}_benchmark.txt"
     params:
         reference = config["reference"],
@@ -342,7 +342,8 @@ rule mapping:
         module load java/jdk-17.0.2+8
         picard={params.picard}
 
-        java -Xmx15G -Djava.library.path={params.bisulfitehic}/jbwa/jbwa-1.0.0/src/main/native \
+        JAVA_XMX_GB=$(( {resources.mem_mb} * 90 / 100 / 1000 ))
+        java -Xmx${{JAVA_XMX_GB}}G -Djava.library.path={params.bisulfitehic}/jbwa/jbwa-1.0.0/src/main/native \
         -cp "{params.bisulfitehic}/target/bisulfitehic-0.38-jar-with-dependencies.jar:{params.bisulfitehic}/jbwa/jbwa-1.0.0/jbwa.jar" \
         main.java.edu.mit.compbio.bisulfitehic.mapping.Bhmem {params.reference}.fa \
         {output.bam} {input.r1_trimmed} {input.r2_trimmed} \
@@ -364,7 +365,7 @@ rule bamprocess:
         # temporary output (maybe could optimize to use temp() here instead of temp in the shell command?)
     threads: 16
     resources:
-        mem_mb=64000
+        mem_mb=128000
     benchmark: "benchmarks/03.bamprocess/bamprocess.{prefix}.{index}_benchmark.txt"
     params:
         reference = config["reference"],
@@ -398,7 +399,7 @@ rule qc:
         summary = "04.alignment_snakemake/{prefix}.{index}.summary.txt.gz"
     threads: 8
     resources:
-        mem_mb=16000
+        mem_mb=128000
     benchmark: "benchmarks/qc/qc.{prefix}.{index}_benchmark.txt"
     params:
         bisulfitehic = config["bisulfitehic"],
@@ -424,9 +425,9 @@ rule bisqc:
         qc_conv_plot = "07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.WCH.bisuflite_conv_distribution_plot.pdf",
         qc_bias_plot = "07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.WCH.methy_bias_plot.pdf",
         qc_cycle = "07.bistools_snakemake/qc/{prefix}.{index}/{prefix}.{index}.calmd.WCH.methy.cycle.txt.gz"
-    threads: 1
+    threads: 16
     resources:
-        mem_mb=10000
+        mem_mb=128000
     params:
         reference = config["reference"],
         vcf = config["variants"],
@@ -448,6 +449,7 @@ rule bisqc:
         module load java/jdk1.8.0_191
         module load libpng
         export BISTOOLS={params.bistools}
+        BISTOOLS_MEM_GB=$(( {resources.mem_mb} * 90 / 100 / 1000 ))
 
         perl {params.bistools}/Bis-QC/Bis-QC.pl \
         --QC_mode 1 \
@@ -455,7 +457,7 @@ rule bisqc:
         --disable_coverage_check \
         --pattern WCH \
         --nt {threads} \
-        --mem 10 \
+        --mem ${{BISTOOLS_MEM_GB}} \
         --genome {params.reference}.fa \
         --dbsnp {params.vcf} \
         --bistools_path {params.bistools} {input.calmd_bam} \
@@ -473,8 +475,6 @@ rule bistools:
         # per-read tables + per-base BEDs are gzipped post-hoc (text, ~5x smaller).
         cyt_vcf       = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.vcf",
         snp_vcf       = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.snp.vcf",
-        gch_per_read  = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.GCH.txt.gz",
-        hcg_per_read  = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.HCG.txt.gz",
         # post-processed filtered + sorted VCF and per-base BEDs (consumed downstream)
         cyt_filt_vcf       = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.vcf",
         cyt_filt_summary   = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.vcf.cpgSummary.txt.gz",
@@ -484,7 +484,7 @@ rule bistools:
         hcg_strand_6plus2  = "07.bistools_snakemake/methylation/{prefix}.{index}/{prefix}.{index}.cyt.filtered.sort.HCG.strand.6plus2.bed.gz"
     threads: 1
     resources:
-        mem_mb=30000
+        mem_mb=128000
     params:
         reference  = config["reference"],
         vcf        = config["variants"],
@@ -503,9 +503,10 @@ rule bistools:
         mkdir -p {params.outdir}
         BAM_ABS=$(readlink -f {input.calmd_bam})
         LOG_ABS=$(readlink -f {log} 2>/dev/null || echo "$PWD/{log}")
+        BISSNP_MEM_GB=$(( {resources.mem_mb} * 90 / 100 / 1000 ))
         cd {params.outdir}
         perl {params.bistools}/Bis-SNP/bissnp_nomehic_usage.pl \
-            --prefix {params.sample} --mem 20 \
+            --prefix {params.sample} --mem ${{BISSNP_MEM_GB}} \
             {params.bissnp_jar} \
             ${{BAM_ABS}} {params.reference}.fa {params.vcf} \
             > ${{LOG_ABS}} 2>&1
@@ -535,7 +536,7 @@ rule methylation:
         label = r"\d+(bp|kb|Mb)"
     threads: 1
     resources:
-        mem_mb=8000
+        mem_mb=128000
     params:
         scripts = config["scripts"],
         reference = config["reference"],
@@ -567,7 +568,7 @@ rule methylation_region:
         label = r"[A-Za-z][A-Za-z0-9_\-]*"
     threads: 1
     resources:
-        mem_mb=8000
+        mem_mb=128000
     params:
         scripts = config["scripts"],
         region_bed = lambda wildcards: (config.get("methylation_region_beds") or {})[wildcards.label]
